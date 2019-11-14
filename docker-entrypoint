@@ -29,10 +29,13 @@ do
     printf "| ENTRYPOINT: Exporting var: $varName\n"
 done
 
-# Lets set default upstream servers
-if [[ "${UPSTREAM_DNS_SERVER}" == "" ]]; then
-  UPSTREAM_DNS_SERVER="udp:unbound:53"
-fi
+# Lets set default variable values
+[[ "${UPSTREAM_DNS_SERVER}" == "" ]] && export UPSTREAM_DNS_SERVER="udp:unbound:53"
+[[ "${DOH_HTTP_PREFIX}" == "" ]] && export DOH_HTTP_PREFIX="/getnsrecord"
+[[ "${DOH_SERVER_LISTEN}" == "" ]] && export DOH_SERVER_LISTEN=":8053"
+[[ "${DOH_SERVER_TIMEOUT}" == "" ]] && export DOH_SERVER_TIMEOUT="10"
+[[ "${DOH_SERVER_TRIES}" == "" ]] && export DOH_SERVER_TRIES="3"
+[[ "${DOH_SERVER_VERBOSE}" == "" ]] && export DOH_SERVER_VERBOSE="true"
 
 # Lets copy default doh server config file if does not exists
 if [[ ! -f ${DOH_CONFIG_FILE} ]]; then

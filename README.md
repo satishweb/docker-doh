@@ -24,6 +24,11 @@ services:
     environment:
       DEBUG: "0"
       UPSTREAM_DNS_SERVER: "udp:unbound:53"
+      DOH_HTTP_PREFIX: "/getnsrecord"
+      DOH_SERVER_LISTEN: ":8053"
+      DOH_SERVER_TIMEOUT: "10"
+      DOH_SERVER_TRIES: "3"
+      DOH_SERVER_VERBOSE: "true"
       # You can add more variables here or as docker secret and entrypoint
       # script will replace them inside doh-server.conf file
     volumes:
