@@ -1,0 +1,14 @@
+#!/bin/sh
+# Author: Satish Gaikwad <satish@satishweb.com>
+# FILE NAME: app-config
+
+set -e
+
+## Customizations
+# Here you can manipulate your configuration files before doh service is started
+# You can pretty much do anything here
+# Please read /docker-entrypoint script before writing any code here
+
+# Launch app
+echo "| ENTRYPOINT: Lauching app..."
+exec $@
