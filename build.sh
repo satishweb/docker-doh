@@ -67,14 +67,14 @@ dockerBuild(){
   fi
 
   # Lets create git tag and do checkin
-  # if [[ $dohVer == *.*.* ]]
-  #   then
-  #     echo "INFO: Creating/Updating git tag"
-  #     git tag -d $verTag
-  #     git push --delete origin $verTag
-  #     git tag $verTag
-  #     git push origin --tags
-  # fi
+  if [[ $dohVer == *.*.* ]]
+    then
+      echo "INFO: Creating/Updating git tag"
+      git tag -d $verTag
+      git push --delete origin $verTag
+      git tag $verTag
+      git push origin --tags
+  fi
 }
 
 ##############
