@@ -35,7 +35,7 @@ done
 [[ "${DOH_SERVER_LISTEN}" == "" ]] && export DOH_SERVER_LISTEN=":8053"
 [[ "${DOH_SERVER_TIMEOUT}" == "" ]] && export DOH_SERVER_TIMEOUT="10"
 [[ "${DOH_SERVER_TRIES}" == "" ]] && export DOH_SERVER_TRIES="3"
-[[ "${DOH_SERVER_VERBOSE}" == "" ]] && export DOH_SERVER_VERBOSE="true"
+[[ "${DOH_SERVER_VERBOSE}" == "" ]] && export DOH_SERVER_VERBOSE="false"
 
 # Lets copy default doh server config file if does not exists
 if [[ ! -f ${DOH_CONFIG_FILE} ]]; then

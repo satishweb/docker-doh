@@ -6,15 +6,12 @@ RUN apk add --no-cache git make jq curl
 
 WORKDIR /src
 
-ARG DOH_VERSION_LATEST
-
 # Lets download latest version of DOH
-RUN wget "https://github.com/m13253/dns-over-https/archive/${DOH_VERSION_LATEST}.zip" -O doh.zip \
+RUN DOH_VERSION_LATEST="$(curl -s https://api.github.com/repos/m13253/dns-over-https/tags|jq -r '.[0].name')" \
+    && wget "https://github.com/m13253/dns-over-https/archive/${DOH_VERSION_LATEST}.zip" -O doh.zip \
     && unzip doh.zip \
-    && rm doh.zip
-
-# Lets compile DOH
-RUN cd dns-over-https* \
+    && rm doh.zip \
+    && cd dns-over-https* \
     && make doh-server/doh-server \
     && mkdir /dist \
     && cp doh-server/doh-server /dist/doh-server \
@@ -39,4 +36,4 @@ ENTRYPOINT ["/docker-entrypoint"]
 CMD [ "/server/doh-server", "-conf", "/server/doh-server.conf" ]
 
 # Healthcheck
-HEALTHCHECK --interval=5s --timeout=3s --start-period=10s CMD wget "localhost:$(echo ${DOH_SERVER_LISTEN}|awk -F '[:]' '{print $2}')/${DOH_HTTP_PREFIX}/name=google.com&type=A" -O /dev/null || exit 1
+HEALTHCHECK --interval=1m --timeout=3s --start-period=30s CMD wget "localhost:$(echo ${DOH_SERVER_LISTEN}|awk -F '[:]' '{print $2}')${DOH_HTTP_PREFIX}?name=google.com&type=A" -O /dev/null || exit 1

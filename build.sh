@@ -53,7 +53,7 @@ dockerBuild(){
   errCheck "$?" "Docker Build failed" "exitOnFail"
 
   # Lets identify version and setup image tags
-  dohVer="$(curl -s https://api.github.com/repos/m13253/dns-over-https/tags|jq -r '.[0].name')"
+  dohVer="$(docker run --rm -it --entrypoint=bash $image:$imageTag -c "cat /server/doh-server.version")"
 
   # Lets set image version tag based on buildType
   verTag=${1}-$dohVer
@@ -61,21 +61,21 @@ dockerBuild(){
   if [[ $dohVer == *.*.* ]]
     then
       echo "INFO: Creating tags..."
-      docker tag $image $image:$verTag >/dev/null 2>&1
+      docker tag $image:$imageTag $image:$verTag >/dev/null 2>&1
       errCheck "$?" "Tag creation failed"
     else
       echo "WARN: Could not determine awscli version, ignoring tagging..."
   fi
 
   # Lets create git tag and do checkin
-  if [[ $dohVer == *.*.* ]]
-    then
-      echo "INFO: Creating/Updating git tag"
-      git tag -d $verTag
-      git push --delete origin $verTag
-      git tag $verTag
-      git push origin --tags
-  fi
+  # if [[ $dohVer == *.*.* ]]
+  #   then
+  #     echo "INFO: Creating/Updating git tag"
+  #     git tag -d $verTag
+  #     git push --delete origin $verTag
+  #     git tag $verTag
+  #     git push origin --tags
+  # fi
 }
 
 ##############
