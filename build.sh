@@ -43,17 +43,16 @@ errCheck(){
 # Docker Build function
 dockerBuild(){
   # $1 = image type
-  # $2 = "additional docker arguments"
 
   # Lets set appropriate tags based on buildType
   imageTag=${1}-latest
   dockerfile=Dockerfile_$1
   echo "INFO: Building $1 Image: $image:$imageTag ... (may take a while)"
-  docker build . $2 -f $dockerfile -t $image:$imageTag
+  docker build . -f $dockerfile -t $image:$imageTag
   errCheck "$?" "Docker Build failed" "exitOnFail"
 
   # Lets identify version and setup image tags
-  dohVer="$(docker run --rm -it --entrypoint=bash $image:$imageTag -c "cat /server/doh-server.version")"
+  dohVer="$(docker run --rm -it --entrypoint=bash $image:$imageTag -c "cat /server/doh-server.version"|sed $'s/[^[:print:]\t]//g')"
 
   # Lets set image version tag based on buildType
   verTag=${1}-$dohVer
@@ -102,8 +101,7 @@ git pull
 # Lets prepare docker image
 echo "INFO: Removing all tags of image $image ..."
 docker rmi -f $(docker images|grep "$image"|awk '{print $1":"$2}') >/dev/null 2>&1
-dohVer="$(curl -s https://api.github.com/repos/m13253/dns-over-https/tags|jq -r '.[0].name')"
-dockerBuild $buildType "--build-arg DOH_VERSION_LATEST=$dohVer"
+dockerBuild $buildType
 
 # Lets do manual push to docker.
 # To be used only if docker automated build process is failed
