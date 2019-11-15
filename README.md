@@ -57,3 +57,6 @@ docker build . --no-cache -t satishweb/doh-server
 ```
 docker pull satishweb/doh-server
 ```
+
+## Credits
+- DOH Server: https://github.com/m13253/dns-over-https
