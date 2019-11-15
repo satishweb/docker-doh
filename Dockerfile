@@ -24,7 +24,7 @@ COPY --from=doh-build /dist /server
 COPY doh-server.sample.conf /server/doh-server.sample.conf
 
 # Install required packages by docker-entrypoint
-RUN apk add --no-cache curl jq bash gettext
+RUN apk add --no-cache bash gettext
 
 # Add docker entrypoint and make it executable
 ADD docker-entrypoint /docker-entrypoint

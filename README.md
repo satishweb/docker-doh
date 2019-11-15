@@ -2,14 +2,15 @@
 
 ## Features
 - DNS Over HTTP
-- Accepts Upstream DNS servers as variable
-- Customizations support
+- Custom upstream DNS server option
+- Support for custom script execution (/app-config)
 
 ## How to use
 
 ```
 docker run -itd --name doh-server \
     -p 8053:8053 \
+    -e UPSTREAM_DNS_SERVER=udp:8.8.8.8:53 \
 satishweb/doh-server
 ```
 
@@ -50,7 +51,7 @@ services:
 
 ## Build Docker image
 ```
-docker build . --no-cache -t doh-server
+docker build . --no-cache -t satishweb/doh-server
 ```
 ## Pull Docker Hub Image
 ```
