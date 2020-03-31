@@ -37,7 +37,7 @@ do
 done
 
 # If stack is not up, check for ports before starting
-if [[ "$(docker stack ls|grep -e "^$stackName* *.*Swarm"|wc -l)" != "1" ]]; then 
+if [[ "$(docker stack ls|grep -e "^$stackName* *.*Swarm"|wc -l)" != "1" ]]; then
   # check for systemd-resolved package. We can not run unbound with systemd-resolved
   if [[ "$(dpkg -l 2>&1|grep systemd-resolved|wc -l)" -gt "0" ]]; then
     echo "systemd-resolved package is installed on this system."
@@ -60,6 +60,7 @@ do
   serviceConfigFile="services/$i/docker-service.yml"
   dirs=" $(grep -e "^ *- ../../data/" $serviceConfigFile|awk -F '[:]' '{print $1}'|sed 's/- //; s/ //g;s/^..\/..\///g'|tr '\n' ' ')"
   for d in $dirs; do [[ ! -d ${d} ]] && mkdir -p ${d} >/dev/null 2>&1; done
+  [[ "$i" == "unbound" ]] && touch data/unbound/custom.hosts
 done
 
 docker swarm init >/dev/null 2>&1
