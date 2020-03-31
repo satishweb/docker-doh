@@ -1,0 +1,56 @@
+# version: '3.7'
+# networks:
+#   default:
+#     driver: overlay
+#     attachable: true
+#     external: false
+#   proxy:
+#     external: true
+# services:
+#   pihole:
+#     image: pihole/pihole:latest
+#     hostname: pihole
+#     init: true
+#     networks:
+#       - default
+#       - proxy
+#     environment:
+#       DNS1: 'unbound'
+#       DNS2: 'unbound'
+#       IPv6: "false"
+#       DNSMASQ_LISTENING: "all"
+#       WEBPASSWORD: "YOURPASS!"
+#       VIRTUAL_HOST: "dns.YOURDOMAIN.COM"
+#     volumes:
+#       - ../../data/pihole/etc-pihole:/etc/pihole
+#       - ../../data/pihole/etc-dnsmasq.d:/etc/dnsmasq.d/
+#       # - ./app-config:/app-config
+#     deploy:
+#       replicas: 1
+#       # placement:
+#       #   constraints:
+#       #     - node.labels.type == worker
+#         restart_policy:
+#         condition: any
+#         delay: 10s
+#         max_attempts: 99
+#         window: 180s
+#       # resources:
+#       #   limits:
+#       #     cpus: '1.00'
+#       #     memory: 1024M
+#       #   reservations:
+#       #     cpus: '0.25'
+#       #     memory: 512M
+#       labels:
+#         - com.df.notify=true
+#         - com.df.distribute=true
+#         - com.df.servicePath='/dns-admin'
+#         - com.df.reqPathSearch=/dns-admin
+#         - com.df.reqPathReplace=/
+#         - com.df.port=80
+#         - com.df.users=admin:YOURPASS!
+#     depends_on:
+#       - unbound
+#     labels:
+#       - "com.satishweb.description=Pi Hole DNS Service"

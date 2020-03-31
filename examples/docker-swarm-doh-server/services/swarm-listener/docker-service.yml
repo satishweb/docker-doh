@@ -1,0 +1,44 @@
+version: '3.7'
+networks:
+  default:
+    driver: overlay
+    attachable: true
+    external: false
+  proxy:
+    external: true
+services:
+  swarm-listener:
+    image: dockerflow/docker-flow-swarm-listener:latest
+    hostname: swarm-listener
+    init: true
+    networks:
+      - default
+      - proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DF_NOTIFY_CREATE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/reconfigure
+      - DF_NOTIFY_REMOVE_SERVICE_URL=http://proxy:8080/v1/docker-flow-proxy/remove
+    deploy:
+      placement:
+        constraints:
+          - node.role==manager
+      restart_policy:
+        condition: any
+        delay: 10s
+        max_attempts: 99
+        window: 180s
+      # resources:
+      #   limits:
+      #     cpus: '1.00'
+      #     memory: 1024M
+      #   reservations:
+      #     cpus: '0.25'
+      #     memory: 512M
+    healthcheck:
+      test: [ "CMD", "wget", "http://localhost:8080/v1/docker-flow-swarm-listener/ping", "-O", "/dev/null" ]
+      interval: 2m
+      timeout: 1m
+      retries: 3
+    labels:
+      - "com.satishweb.description=Docker Flow Swarm Listener"
