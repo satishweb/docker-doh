@@ -65,7 +65,6 @@ docker pull satishweb/doh-server
 
 # How to setup DOH Server on Linux/Mac/RaspberryPI in minutes:
 ## Using Docker Compose
----
 ### Requirements:
 - RaspeberryPi/Linux/Mac with Docker preinstalled (Required)
 - DNS Server Setup on AWS R53 (Other providers supported)
@@ -82,15 +81,9 @@ cd doh-server
 ```
 - Copy env.sample.conf to env.conf and update environment variables
 ```
-# Lets Encrypt Settings
 EMAIL=user@example.com
-# SSL certificate is generated for base domain and subdomain.domain
 DOMAIN=example.com
 SUBDOMAIN=dns
-
-# DNS Challenge Route53 Credentials for Proxy + Letsencrypt
-# You may use various DNS providers from the list.
-# Please check proxy configuration in docker-compose.yml
 AWS_ACCESS_KEY_ID=AKIKJ_CHANGE_ME_FKGAFVA
 AWS_SECRET_ACCESS_KEY=Nx3yKjujG8kjj_CHANGE_ME_Z/FnMjhfJHFvEMRY3
 AWS_REGION=us-east-1
@@ -101,18 +94,24 @@ AWS_HOSTED_ZONE_ID=Z268_CHANGE_ME_IQT2CE6
 ./launch.sh
 ```
 - Add your custom hosts to override DNS records if needed.
-> Note: This is optional unless you have certain DNS records that needs to be resolved/overridden locally.
 ```
 mkdir -p data/unbound/custom
 vi data/unbound/custom/custom.hosts
+Contents:
+local-zone: "SUB1.example.com" redirect
+local-data: "SUB1.example.com A 192.168.0.100"
+local-zone: "SUB2.example.com" redirect
+local-data: "SUB2.example.com A 192.168.0.101"
 ```
-```
-File: data/unbound/custom.hosts
 
-local-zone: "SUB1.YOURDOMAIN.COM" redirect
-local-data: "SUB1.YOURDOMAIN.COM A 192.168.0.100"
-local-zone: "SUB2.YOURDOMAIN.COM" redirect
-local-data: "SUB2.YOURDOMAIN.COM A 192.168.0.101"
+- What is my DOH address?
+```
+https://dns.example.com/getnsrecord
+```
+
+- How do I test DoH Server?
+```
+curl -w '\n' 'https://dns.example.com/getnsrecord?name=google.com&type=A'
 ```
 
 ## Common Issues and how to debug them
@@ -120,7 +119,9 @@ local-data: "SUB2.YOURDOMAIN.COM A 192.168.0.101"
   - Check data/proxy/certs/acme.json contents.
   - Enable debug mode for proxy by editing proxy service in docker-compose.yml. Run launch command again for changes to take effect.
   - Check proxy container logs for errors.
+
 > Note: If you are using IAM account for R53 access, please make sure you have below permissions added in access policy
+
 ```
 {
   "Version": "2012-10-17",
@@ -158,7 +159,7 @@ local-data: "SUB2.YOURDOMAIN.COM A 192.168.0.101"
   - You need to stop those programs or change the proxy service ports to unused ports
 
 ## Using Docker Swarm
----
+
 ### Requirements
 - RaspeberryPi/Linux/Mac with Docker preinstalled (Required)
 - DNS Server Setup on AWS R53 (Optional)
@@ -189,52 +190,53 @@ AWS_HOSTED_ZONE_ID
 ```
 mkdir -p data/proxy/certs
 # Generate Certificate Chain using below command
-cat your-ssl-certicate.pem your-ca-certificate.pem your-private-key.pem > data/proxy/certs/YOURDOMAIN.COM.combined.pem
+cat your-ssl-certicate.pem your-ca-certificate.pem your-private-key.pem > data/proxy/certs/example.com.combined.pem
 ```
 - Add your custom hosts to override DNS records if needed.
-> Note: This is optional unless you have certain DNS records that needs to be resolved/overridden locally.
+
 ```
 mkdir -p data/unbound
 vi data/unbound/custom.hosts
+Contents:
+local-zone: "SUB1.example.com" redirect
+local-data: "SUB1.example.com A 192.168.0.100"
+local-zone: "SUB2.example.com" redirect
+local-data: "SUB2.example.com A 192.168.0.101"
 ```
-  - File Path: `data/unbound/custom.hosts`
-  - File Contents Format:
-```
-local-zone: "SUB1.YOURDOMAIN.COM" redirect
-local-data: "SUB1.YOURDOMAIN.COM A 192.168.0.100"
-local-zone: "SUB2.YOURDOMAIN.COM" redirect
-local-data: "SUB2.YOURDOMAIN.COM A 192.168.0.101"
-```
+
 - Start DNS server with Auto SSL Cert generation using LetsEncrypt and AWS DNS Hosting
 ```
 ./launch.sh unbound cert-manager proxy swarm-listener doh-server
 ```
+
 - Start DNS Server with custom SSL certificate
 ```
 ./launch.sh unbound proxy swarm-listener doh-server
 ```
+
 - Stop DNS Server:
-> Note: This will remove services but does not delete data
 ```
 ./remove.sh
 ```
+
 - How to check if all is running well?
-> Note: Check if all services are launched successfully
 ```
 docker service ls
 ```
+
 - How to see logs of service?
 ```
 docker service logs -f dns_unbound
 ```
+
 - What is my DOH address?
-> Note: This is your server DNS name that you set up
 ```
-https://dns.YOURDOMAIN.COM/getnsrecord
+https://dns.example.com/getnsrecord
 ```
+
 - How do I test DoH Server?
 ```
-curl -w '\n' 'https://dns.YOURDOMAIN.COM/getnsrecord?name=google.com&type=A'
+curl -w '\n' 'https://dns.example.com/getnsrecord?name=google.com&type=A'
 ```
 
 ## IPV6 Support
@@ -255,11 +257,12 @@ https://developers.cloudflare.com/argo-tunnel/downloads/
 - Set your DOH server as upstream for cloudflared with below configuration
   - Linux: /usr/local/etc/cloudflared/config.yml
   - Mac: /usr/local/etc/cloudflared/config.yaml
-  - Windows: God knows where, I dont have windows!
+  - Windows: God knows where, I don't have windows
+  
 ```
 proxy-dns: true
 proxy-dns-upstream:
- - https://dns.YOURDOMAIN.COM/getnsrecord
+ - https://dns.example.com/getnsrecord
 ```
 > Note: You will need to ensure dnsmasq is uninstalled from your client system before using cloudflared
 
@@ -268,11 +271,11 @@ proxy-dns-upstream:
 ```
 https://play.google.com/store/apps/details?id=app.intra&hl=en_US
 ```
+
 - Configure infra app to use your DOH server
 ```
 Infra App -> Settings -> Select DNS over HTTPS Server -> Custom server URL
-Value: https://dns.YOURDOMAIN.COM/getnsrecord
-
+Value: https://dns.example.com/getnsrecord
 ```
 
 # Credits
