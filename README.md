@@ -16,7 +16,7 @@
 
 ## How to use
 
-```
+```bash
 docker run -itd --name doh-server \
     -p 8053:8053 \
     -e UPSTREAM_DNS_SERVER=udp:8.8.8.8:53 \
@@ -24,7 +24,7 @@ satishweb/doh-server
 ```
 
 ## Docker configuration:
-```
+```yaml
 services:
   doh-server:
     image: satishweb/doh-server
@@ -55,11 +55,11 @@ services:
 ```
 
 ## Build Docker image
-```
+```bash
 docker build . --no-cache -t satishweb/doh-server
 ```
 ## Pull Docker Hub Image
-```
+```bash
 docker pull satishweb/doh-server
 ```
 
@@ -72,7 +72,7 @@ docker pull satishweb/doh-server
 
 ### Steps
 - Visit https://github.com/satishweb/docker-doh/releases and download latest release to your server
-```
+```bash
 wget https://github.com/satishweb/docker-doh/archive/v2.2.1.zip
 unzip v2.2.1.zip
 cp -rf docker-doh-2.2.1/examples/docker-compose-doh-server doh-server
@@ -80,7 +80,7 @@ rm -rf v2.2.1.zip docker-doh-2.2.1
 cd doh-server
 ```
 - Copy env.sample.conf to env.conf and update environment variables
-```
+```bash
 EMAIL=user@example.com
 DOMAIN=example.com
 SUBDOMAIN=dns
@@ -90,11 +90,11 @@ AWS_REGION=us-east-1
 AWS_HOSTED_ZONE_ID=Z268_CHANGE_ME_IQT2CE6
 ```
 - Launch services
-```
+```bash
 ./launch.sh
 ```
 - Add your custom hosts to override DNS records if needed.
-```
+```bash
 mkdir -p data/unbound/custom
 vi data/unbound/custom/custom.hosts
 Contents:
@@ -105,12 +105,12 @@ local-data: "SUB2.example.com A 192.168.0.101"
 ```
 
 - What is my DOH address?
-```
+```bash
 https://dns.example.com/getnsrecord
 ```
 
 - How do I test DoH Server?
-```
+```bash
 curl -w '\n' 'https://dns.example.com/getnsrecord?name=google.com&type=A'
 ```
 
@@ -122,7 +122,7 @@ curl -w '\n' 'https://dns.example.com/getnsrecord?name=google.com&type=A'
 
 > Note: If you are using IAM account for R53 access, please make sure you have below permissions added in access policy
 
-```
+```json
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -168,16 +168,17 @@ curl -w '\n' 'https://dns.example.com/getnsrecord?name=google.com&type=A'
 
 ### Steps
 - Visit https://github.com/satishweb/docker-doh/releases and download latest release to your server
-```
+```bash
 wget https://github.com/satishweb/docker-doh/archive/v2.2.1.zip
 unzip v2.2.1.zip
 cp -rf docker-doh-2.2.1/examples/docker-swarm-doh-server doh-server
 rm -rf v2.2.1.zip docker-doh-2.2.1
 cd doh-server
 ```
+
 - Edit services/cert-manager/docker-service.yml and update below variables
 > Note: This is to be done only if you intend to automatically setup SSL certificate using AWS DNS Hosting
-```
+```bash
 DOMAIN_1
 CERTBOT_EMAIL
 AWS_ACCESS_KEY_ID
@@ -185,16 +186,17 @@ AWS_SECRET_ACCESS_KEY
 AWS_REGION
 AWS_HOSTED_ZONE_ID
 ```
+
 - If you do not have AWS DNS Hosting, you need to add your SSL certificate manually
 > Note: You need your SSL certificate, CA Certificates and Private Key to complete below SSL configuration. You may use letsencrypt to generate a free certificate.
-```
+```bash
 mkdir -p data/proxy/certs
 # Generate Certificate Chain using below command
 cat your-ssl-certicate.pem your-ca-certificate.pem your-private-key.pem > data/proxy/certs/example.com.combined.pem
 ```
-- Add your custom hosts to override DNS records if needed.
 
-```
+- Add your custom hosts to override DNS records if needed.
+```bash
 mkdir -p data/unbound
 vi data/unbound/custom.hosts
 Contents:
@@ -205,37 +207,37 @@ local-data: "SUB2.example.com A 192.168.0.101"
 ```
 
 - Start DNS server with Auto SSL Cert generation using LetsEncrypt and AWS DNS Hosting
-```
+```bash
 ./launch.sh unbound cert-manager proxy swarm-listener doh-server
 ```
 
 - Start DNS Server with custom SSL certificate
-```
+```bash
 ./launch.sh unbound proxy swarm-listener doh-server
 ```
 
 - Stop DNS Server:
-```
+```bash
 ./remove.sh
 ```
 
 - How to check if all is running well?
-```
+```bash
 docker service ls
 ```
 
 - How to see logs of service?
-```
+```bash
 docker service logs -f dns_unbound
 ```
 
 - What is my DOH address?
-```
+```bash
 https://dns.example.com/getnsrecord
 ```
 
 - How do I test DoH Server?
-```
+```bash
 curl -w '\n' 'https://dns.example.com/getnsrecord?name=google.com&type=A'
 ```
 
@@ -251,15 +253,15 @@ curl -w '\n' 'https://dns.example.com/getnsrecord?name=google.com&type=A'
 
 ## Linux, Mac, Windows Clients
 - Install Cloudflared for Linux, Mac, Windows using below link
-```
+```bash
 https://developers.cloudflare.com/argo-tunnel/downloads/
 ```
 - Set your DOH server as upstream for cloudflared with below configuration
   - Linux: /usr/local/etc/cloudflared/config.yml
   - Mac: /usr/local/etc/cloudflared/config.yaml
   - Windows: God knows where, I don't have windows
-  
-```
+
+```yaml
 proxy-dns: true
 proxy-dns-upstream:
  - https://dns.example.com/getnsrecord
@@ -268,7 +270,7 @@ proxy-dns-upstream:
 
 ## Android
 - Install Infra app from Play Store
-```
+```bash
 https://play.google.com/store/apps/details?id=app.intra&hl=en_US
 ```
 
