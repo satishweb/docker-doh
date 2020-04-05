@@ -23,7 +23,7 @@ docker run -itd --name doh-server \
 satishweb/doh-server
 ```
 
-## Docker Stack configuration:
+## Docker configuration:
 ```
 services:
   doh-server:
@@ -52,11 +52,113 @@ services:
       #     - node.labels.type == worker
     depends_on:
       - unbound
-    labels:
-      - "com.satishweb.description=DNS Over HTTP Service"
 ```
 
-## How to setup DOH Server on Linux/Mac/RaspberryPI in minutes:
+## Build Docker image
+```
+docker build . --no-cache -t satishweb/doh-server
+```
+## Pull Docker Hub Image
+```
+docker pull satishweb/doh-server
+```
+
+# How to setup DOH Server on Linux/Mac/RaspberryPI in minutes:
+## Using Docker Compose
+---
+### Requirements:
+- RaspeberryPi/Linux/Mac with Docker preinstalled (Required)
+- DNS Server Setup on AWS R53 (Other providers supported)
+- AWS Access Key, Secret key and R53 DNS Hosted Zone ID (for LetsEncrypt based auto installation of SSL Certs) (Optional)
+
+### Steps
+- Visit https://github.com/satishweb/docker-doh/releases and download latest release to your server
+```
+wget https://github.com/satishweb/docker-doh/archive/v2.2.1.zip
+unzip v2.2.1.zip
+cp -rf docker-doh-2.2.1/examples/docker-compose-doh-server doh-server
+rm -rf v2.2.1.zip docker-doh-2.2.1
+cd doh-server
+```
+- Copy env.sample.conf to env.conf and update environment variables
+```
+# Lets Encrypt Settings
+EMAIL=user@example.com
+# SSL certificate is generated for base domain and subdomain.domain
+DOMAIN=example.com
+SUBDOMAIN=dns
+
+# DNS Challenge Route53 Credentials for Proxy + Letsencrypt
+# You may use various DNS providers from the list.
+# Please check proxy configuration in docker-compose.yml
+AWS_ACCESS_KEY_ID=AKIKJ_CHANGE_ME_FKGAFVA
+AWS_SECRET_ACCESS_KEY=Nx3yKjujG8kjj_CHANGE_ME_Z/FnMjhfJHFvEMRY3
+AWS_REGION=us-east-1
+AWS_HOSTED_ZONE_ID=Z268_CHANGE_ME_IQT2CE6
+```
+- Launch services
+```
+./launch.sh
+```
+- Add your custom hosts to override DNS records if needed.
+> Note: This is optional unless you have certain DNS records that needs to be resolved/overridden locally.
+```
+mkdir -p data/unbound/custom
+vi data/unbound/custom/custom.hosts
+```
+```
+File: data/unbound/custom.hosts
+
+local-zone: "SUB1.YOURDOMAIN.COM" redirect
+local-data: "SUB1.YOURDOMAIN.COM A 192.168.0.100"
+local-zone: "SUB2.YOURDOMAIN.COM" redirect
+local-data: "SUB2.YOURDOMAIN.COM A 192.168.0.101"
+```
+
+## Common Issues and how to debug them
+- Proxy is still running with self signed certificate
+  - Check data/proxy/certs/acme.json contents.
+  - Enable debug mode for proxy by editing proxy service in docker-compose.yml. Run launch command again for changes to take effect.
+  - Check proxy container logs for errors.
+> Note: If you are using IAM account for R53 access, please make sure you have below permissions added in access policy
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Action": [
+        "route53:GetChange",
+        "route53:ChangeResourceRecordSets",
+        "route53:ListResourceRecordSets"
+      ],
+      "Resource": [
+        "arn:aws:route53:::hostedzone/*",
+        "arn:aws:route53:::change/*"
+      ]
+    },
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Action": "route53:ListHostedZonesByName",
+      "Resource": "*"
+    }
+  ]
+}
+```
+- Can not bind 53 port for unbound service
+  - Unbound service is configured to bind 53 port on the docker host.
+  - Sometimes systemd-resolved service blocks that port and it needs to be stopped
+  - run `sudo service systemd-resolved stop;sudo apt-get -y purge systemd-resolved` and then retry again
+  - Unbound service port mappings can be commented out if DOH service is the only DNS client for it.
+
+- Can not bind port 80 and 443 for proxy service.
+  - Another program on the docker host or one of the docker container has aquired the same ports.
+  - You need to stop those programs or change the proxy service ports to unused ports
+
+## Using Docker Swarm
+---
 ### Requirements
 - RaspeberryPi/Linux/Mac with Docker preinstalled (Required)
 - DNS Server Setup on AWS R53 (Optional)
@@ -130,15 +232,22 @@ docker service logs -f dns_unbound
 ```
 https://dns.YOURDOMAIN.COM/getnsrecord
 ```
+- How do I test DoH Server?
+```
+curl -w '\n' 'https://dns.YOURDOMAIN.COM/getnsrecord?name=google.com&type=A'
+```
 
-## How to use DOH Server?
-### Setup your Router (Best experience)
+## IPV6 Support
+- Docker compose/Swarm configuration with IPV6 support will be added in future.
+
+# How to use DOH Server?
+## Setup your Router (Best experience)
 - Login to your router and search for DHCP settings
 - Setup DNS settings to the IP of your DOH server.
 > Note: This will make all your client systems/phones connected to your router use this your DNS server.
 > Note: This will not make clients use DOH but it will end up using unbound private DNS service that protects you from ISP.
 
-### Linux, Mac, Windows Clients
+## Linux, Mac, Windows Clients
 - Install Cloudflared for Linux, Mac, Windows using below link
 ```
 https://developers.cloudflare.com/argo-tunnel/downloads/
@@ -154,7 +263,7 @@ proxy-dns-upstream:
 ```
 > Note: You will need to ensure dnsmasq is uninstalled from your client system before using cloudflared
 
-### Android
+## Android
 - Install Infra app from Play Store
 ```
 https://play.google.com/store/apps/details?id=app.intra&hl=en_US
@@ -166,14 +275,7 @@ Value: https://dns.YOURDOMAIN.COM/getnsrecord
 
 ```
 
-## Build Docker image
-```
-docker build . --no-cache -t satishweb/doh-server
-```
-## Pull Docker Hub Image
-```
-docker pull satishweb/doh-server
-```
-
-## Credits
+# Credits
 - DOH Server: https://github.com/m13253/dns-over-https
+- Docker Flow Proxy: https://proxy.dockerflow.com/
+- Traefik Proxy: https://www.traefik.io
