@@ -17,7 +17,7 @@ RUN DOH_VERSION_LATEST="$(curl -s https://api.github.com/repos/m13253/dns-over-h
     && cp doh-server/doh-server /dist/doh-server \
     && echo ${DOH_VERSION_LATEST} > /dist/doh-server.version
 
-FROM alpine:latest
+FROM alpine:3.9
 LABEL MAINTAINER satish@satishweb.com
 
 COPY --from=doh-build /dist /server
