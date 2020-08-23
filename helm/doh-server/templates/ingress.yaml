@@ -1,0 +1,35 @@
+{{- if .Values.ingress.enabled -}}
+{{- $fullName := include "doh-server.fullname" . -}}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+    app.kubernetes.io/name: {{ include "doh-server.name" . }}
+    helm.sh/chart: {{ include "doh-server.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "86400"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST"
+    nginx.ingress.kubernetes.io/auth-cache-key: "$scheme$proxy_host$uri$is_args$args$request_body"
+    nginx.ingress.kubernetes.io/auth-cache-duration: "any 10m"
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  tls:
+    - hosts:
+        - "{{ .Values.ingress.domainName }}"
+      secretName: "{{ .Values.ingress.domainName }}-tls"
+  rules:
+    - host: "{{ .Values.ingress.domainName }}"
+      http:
+        paths:
+          - path: /dns-query
+            backend:
+              serviceName: {{ $fullName }}
+              servicePort: http
+{{- end -}}
