@@ -1,5 +1,5 @@
 # Author: Satish Gaikwad <satish@satishweb.com>
-FROM golang:1.15.6-alpine AS doh-build
+FROM golang:1.13-alpine AS doh-build
 LABEL MAINTAINER satish@satishweb.com
 
 RUN apk add --no-cache git make jq curl
@@ -18,7 +18,7 @@ RUN set -x ;\
     && cp doh-server/doh-server /dist/doh-server \
     && echo ${DOH_VERSION_LATEST} > /dist/doh-server.version
 
-FROM alpine:3.12
+FROM alpine:3.9
 LABEL MAINTAINER satish@satishweb.com
 
 COPY --from=doh-build /dist /server
