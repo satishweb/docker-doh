@@ -10,6 +10,10 @@ ifdef LATEST
 	EXTRA_BUILD_PARAMS += --mark-latest
 endif
 
+ifdef NO-CACHE
+	EXTRA_BUILD_PARAMS += --no-cache
+endif
+
 all:
 	./build.sh \
 	  --image-name "${IMAGE}" \
