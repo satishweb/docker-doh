@@ -7,8 +7,9 @@ RUN apk add --no-cache git make jq curl
 WORKDIR /src
 
 # Lets download latest version of DOH
-RUN DOH_VERSION_LATEST="$(curl -s https://api.github.com/repos/m13253/dns-over-https/tags|jq -r '.[0].name')" \
-    && wget "https://github.com/m13253/dns-over-https/archive/${DOH_VERSION_LATEST}.zip" -O doh.zip \
+RUN set -x ;\
+    DOH_VERSION_LATEST="$(curl -s https://api.github.com/repos/m13253/dns-over-https/tags|jq -r '.[0].name')" \
+    && curl -L "https://github.com/m13253/dns-over-https/archive/${DOH_VERSION_LATEST}.zip" -o doh.zip \
     && unzip doh.zip \
     && rm doh.zip \
     && cd dns-over-https* \
