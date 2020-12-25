@@ -29,12 +29,7 @@ do
     printf "| ENTRYPOINT: Exporting var: $varName\n"
 done
 
-# Lets copy default doh server config file if does not exists
-if [[ ! -f ${DOH_CONFIG_FILE} ]]; then
-  cp -rf ${DOH_CONFIG_SAMPLE_FILE} ${DOH_CONFIG_FILE}
-fi
-
-# lets generating config file by replacing all variables inside of it.
+# lets generate config file by replacing all variables inside of it.
 TMP_FILE=/tmp/doh-server.conf
 cp ${DOH_CONFIG_FILE} ${TMP_FILE}
 DOLLAR='$' envsubst < /tmp/doh-server.conf > ${DOH_CONFIG_FILE}
