@@ -37,4 +37,4 @@ ENTRYPOINT ["/docker-entrypoint"]
 CMD [ "/server/doh-server", "-conf", "/server/doh-server.conf" ]
 
 # Healthcheck
-HEALTHCHECK --interval=1m --timeout=30s --start-period=1m CMD wget "localhost:$(echo ${DOH_SERVER_LISTEN}|awk -F '[:]' '{print $2}')${DOH_HTTP_PREFIX}?name=google.com&type=A" -O /dev/null || exit 1
+HEALTHCHECK --interval=1m --timeout=30s --start-period=1m CMD wget "localhost:$(echo ${DOH_SERVER_LISTEN}|awk -F '[:]' '{print $2}')$(echo ${DOH_HTTP_PREFIX})?name=google.com&type=A" -O /dev/null || exit 1
