@@ -9,7 +9,7 @@ networks:
 services:
   proxy:
     # The official v2 Traefik docker image
-    image: traefik:v2.2
+    image: traefik:v2.3
     hostname: proxy
     networks:
       - default
