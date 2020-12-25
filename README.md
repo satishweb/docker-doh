@@ -73,10 +73,10 @@ docker pull satishweb/doh-server
 ### Steps
 - Visit https://github.com/satishweb/docker-doh/releases and download latest release to your server
 ```bash
-wget https://github.com/satishweb/docker-doh/archive/v2.2.4.zip
-unzip v2.2.4.zip
-cp -rf docker-doh-2.2.4/examples/docker-compose-doh-server doh-server
-rm -rf v2.2.4.zip docker-doh-2.2.4
+wget https://github.com/satishweb/docker-doh/archive/v2.2.4-1.zip
+unzip v2.2.4-1.zip
+cp -rf docker-doh-2.2.4-1/examples/docker-compose-doh-server doh-server
+rm -rf v2.2.4-1.zip docker-doh-2.2.4-1
 cd doh-server
 ```
 - Copy env.sample.conf to env.conf and update environment variables
@@ -169,10 +169,10 @@ curl -w '\n' 'https://dns.example.com/getnsrecord?name=google.com&type=A'
 ### Steps
 - Visit https://github.com/satishweb/docker-doh/releases and download latest release to your server
 ```bash
-wget https://github.com/satishweb/docker-doh/archive/v2.2.4.zip
-unzip v2.2.4.zip
-cp -rf docker-doh-2.2.4/examples/docker-swarm-doh-server doh-server
-rm -rf v2.2.4.zip docker-doh-2.2.4
+wget https://github.com/satishweb/docker-doh/archive/v2.2.4-1.zip
+unzip v2.2.4-1.zip
+cp -rf docker-doh-2.2.4-1/examples/docker-swarm-doh-server doh-server
+rm -rf v2.2.4-1.zip docker-doh-2.2.4-1
 cd doh-server
 ```
 
