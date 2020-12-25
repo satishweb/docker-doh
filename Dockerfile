@@ -31,6 +31,14 @@ RUN apk add --no-cache bash gettext
 ADD docker-entrypoint /docker-entrypoint
 RUN chmod u+x /docker-entrypoint
 
+# Set environment defaults
+ENV UPSTREAM_DNS_SERVER="udp:unbound:53"
+ENV DOH_HTTP_PREFIX="/getnsrecord"
+ENV DOH_SERVER_LISTEN=":8053"
+ENV DOH_SERVER_TIMEOUT="10"
+ENV DOH_SERVER_TRIES="3"
+ENV DOH_SERVER_VERBOSE="false"
+
 EXPOSE 8053
 
 ENTRYPOINT ["/docker-entrypoint"]
