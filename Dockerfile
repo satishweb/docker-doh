@@ -32,7 +32,9 @@ ADD docker-entrypoint /docker-entrypoint
 RUN chmod u+x /docker-entrypoint
 
 # Set environment defaults
-ENV UPSTREAM_DNS_SERVER="udp:unbound:53"
+# We are using OpenDNS DNS server address as default
+# Here is the list of addresses: https://use.opendns.com/
+ENV UPSTREAM_DNS_SERVER="udp:208.67.222.222:53"
 ENV DOH_HTTP_PREFIX="/getnsrecord"
 ENV DOH_SERVER_LISTEN=":8053"
 ENV DOH_SERVER_TIMEOUT="10"
