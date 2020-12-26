@@ -6,11 +6,11 @@
 - Support for custom script execution (/app-config)
 - Support for linux/amd64,linux/arm64,linux/arm/v7
 - Alpine based tiny images
-- A great example of full DOH Server setup using Docker Swarm
+- A great example of full DOH Server setup using Docker Compose
 
 ## Why?
 - Protect yourself from ISP. They know too much about you as you are using their DNS servers.
-- You dont want to use DOH services from DOH providers. (they are just replacing your ISP DNS service)
+- You don't want to use DOH services from DOH providers. They are just replacing your ISP DNS service.
 - https://www.netsparker.com/blog/web-security/pros-cons-dns-over-https/
 - https://en.wikipedia.org/wiki/DNS_over_HTTPS
 
@@ -19,12 +19,16 @@
 ```bash
 docker run -itd --name doh-server \
     -p 8053:8053 \
-    -e UPSTREAM_DNS_SERVER=udp:8.8.8.8:53 \
+    -e UPSTREAM_DNS_SERVER=udp:208.67.222.222:53 \
 satishweb/doh-server
 ```
 
 ## Docker configuration:
 ```yaml
+version: '2.2'
+networks:
+  default:
+
 services:
   doh-server:
     image: satishweb/doh-server
@@ -33,7 +37,10 @@ services:
       - default
     environment:
       DEBUG: "0"
-      UPSTREAM_DNS_SERVER: "udp:unbound:53"
+      # Upstream DNS server: proto:host:port
+      # We are using OpenDNS DNS servers as default,
+      # Here is the list of addresses: https://use.opendns.com/
+      UPSTREAM_DNS_SERVER: "udp:208.67.222.222:53"
       DOH_HTTP_PREFIX: "/getnsrecord"
       DOH_SERVER_LISTEN: ":8053"
       DOH_SERVER_TIMEOUT: "10"
@@ -50,8 +57,6 @@ services:
       # placement:
       #   constraints:
       #     - node.labels.type == worker
-    depends_on:
-      - unbound
 ```
 
 ## Build Docker image
@@ -158,91 +163,8 @@ curl -w '\n' 'https://dns.example.com/getnsrecord?name=google.com&type=A'
   - Another program on the docker host or one of the docker container has aquired the same ports.
   - You need to stop those programs or change the proxy service ports to unused ports
 
-## Using Docker Swarm
-
-### Requirements
-- RaspeberryPi/Linux/Mac with Docker preinstalled (Required)
-- DNS Server Setup on AWS R53 (Optional)
-- AWS Access Key, Secret key and R53 DNS Hosted Zone ID (for LetsEncrypt based auto installation of SSL Certs) (Optional)
-- SSL Certificate (Required if your domain DNS hosting is not done at AWS)
-
-### Steps
-- Visit https://github.com/satishweb/docker-doh/releases and download latest release to your server
-```bash
-wget https://github.com/satishweb/docker-doh/archive/v2.2.4-1.zip
-unzip v2.2.4-1.zip
-cp -rf docker-doh-2.2.4-1/examples/docker-swarm-doh-server doh-server
-rm -rf v2.2.4-1.zip docker-doh-2.2.4-1
-cd doh-server
-```
-
-- Edit services/cert-manager/docker-service.yml and update below variables
-> Note: This is to be done only if you intend to automatically setup SSL certificate using AWS DNS Hosting
-```bash
-DOMAIN_1
-CERTBOT_EMAIL
-AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY
-AWS_REGION
-AWS_HOSTED_ZONE_ID
-```
-
-- If you do not have AWS DNS Hosting, you need to add your SSL certificate manually
-> Note: You need your SSL certificate, CA Certificates and Private Key to complete below SSL configuration. You may use letsencrypt to generate a free certificate.
-```bash
-mkdir -p data/proxy/certs
-# Generate Certificate Chain using below command
-cat your-ssl-certicate.pem your-ca-certificate.pem your-private-key.pem > data/proxy/certs/example.com.combined.pem
-```
-
-- Add your custom hosts to override DNS records if needed.
-```bash
-mkdir -p data/unbound
-vi data/unbound/custom.hosts
-Contents:
-local-zone: "SUB1.example.com" redirect
-local-data: "SUB1.example.com A 192.168.0.100"
-local-zone: "SUB2.example.com" redirect
-local-data: "SUB2.example.com A 192.168.0.101"
-```
-
-- Start DNS server with Auto SSL Cert generation using LetsEncrypt and AWS DNS Hosting
-```bash
-./launch.sh unbound cert-manager proxy swarm-listener doh-server
-```
-
-- Start DNS Server with custom SSL certificate
-```bash
-./launch.sh unbound proxy swarm-listener doh-server
-```
-
-- Stop DNS Server:
-```bash
-./remove.sh
-```
-
-- How to check if all is running well?
-```bash
-docker service ls
-```
-
-- How to see logs of service?
-```bash
-docker service logs -f dns_unbound
-```
-
-- What is my DOH address?
-```bash
-https://dns.example.com/getnsrecord
-```
-
-- How do I test DoH Server?
-```bash
-curl -w '\n' 'https://dns.example.com/getnsrecord?name=google.com&type=A'
-```
-
 ## IPV6 Support
-- Docker compose/Swarm configuration with IPV6 support will be added in future.
+- Docker compose configuration with IPV6 support will be added in future.
 
 # How to use DOH Server?
 ## Setup your Router (Best experience)
@@ -259,7 +181,7 @@ https://developers.cloudflare.com/argo-tunnel/downloads/
 - Set your DOH server as upstream for cloudflared with below configuration
   - Linux: /usr/local/etc/cloudflared/config.yml
   - Mac: /usr/local/etc/cloudflared/config.yaml
-  - Windows: God knows where, I don't have windows
+  - Windows: Need help here, if you know where to configure, please contribute
 
 ```yaml
 proxy-dns: true
@@ -282,5 +204,4 @@ Value: https://dns.example.com/getnsrecord
 
 # Credits
 - DOH Server: https://github.com/m13253/dns-over-https
-- Docker Flow Proxy: https://proxy.dockerflow.com/
 - Traefik Proxy: https://www.traefik.io
