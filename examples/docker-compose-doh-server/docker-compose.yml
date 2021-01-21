@@ -97,5 +97,6 @@ services:
       - ./unbound.sample.conf:/templates/unbound.sample.conf
       - ./data/unbound/custom:/etc/unbound/custom
       # Keep your custom.hosts file inside custom folder
-    #environment:
+    environment:
+      DOMAIN_WHITELIST: ${DOMAIN_WHITELIST}
     #  DEBUG: "1"
