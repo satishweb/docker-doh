@@ -27,6 +27,8 @@ __usage() {
   echo "  --push-images   : Enables pushing of docker images to docker hub"
   echo "  --push-git-tags : Enabled push of git tags to git remote origin"
   echo "  --no-cache      : Avoid use of docker build cache"
+  echo "  --docker-file   : Path to the docker file from working dir"
+  echo "  --docker-args   : Additional docker command arguments to supply"
   echo "  -h|--help       : Prints this help menu"
   exit 1
 }
@@ -34,6 +36,7 @@ __usage() {
 __processParams() {
   extraDockerArgs=""
   imageTags=""
+  dockerFile=Dockerfile
   while [ "$1" != "" ]; do
     case $1 in
       -i|--image-name) shift
@@ -64,6 +67,13 @@ __processParams() {
                        ;;
       --no-cache)      extraDockerArgs+=" --no-cache"
                        ;;
+      --docker-file)   shift
+                       dockerFile="$1"
+                       ;;
+      --docker-args)   shift
+                       dockerArgs=$1
+                       extraDockerArgs+=" dockerArgs"
+                       ;;
       -h|--help)       __usage
                        ;;
       * )              __usage "Missing or incorrect parameters"
@@ -77,6 +87,7 @@ __processParams() {
   [[ ! $tagName ]] && __usage "Work dir path missing"
   [[ ! $workDir ]] && workDir=$(pwd)
   [[ ! $image ]] && image=$(basename $(pwd))
+  OSF=$(echo ${dockerFile}|cut -d '.' -f 2)
 }
 
 __errCheck(){
@@ -94,7 +105,7 @@ __dockerBuild(){
 
   tagParams=""
   for i in $2; do tagParams+=" -t $1:$i"; done
-  docker buildx build --platform "$3" $5 $tagParams $4
+  docker buildx build --platform "$3" $5 $tagParams -f $4/$dockerFile .
   __errCheck "$?" "Docker Build failed"
 }
 
@@ -157,9 +168,10 @@ __setupDocker
 echo "INFO: Building Docker Images (may take a while)"
 echo "INFO: Docker image      : $image"
 echo "INFO: Platforms         : $platforms"
-echo "INFO: Docker image tags : $imageTags"
+echo "INFO: DockerFile        : $dockerFile"
+echo "INFO: Docker image tags : $imageTags $OSF"
 echo "INFO: Image tags push?  : $imgPush"
 echo "INFO: Git tags          : $tagName"
 echo "INFO: Git tags push?    : $tagPush"
-__dockerBuild $image "$imageTags" "$platforms" "$workDir" "$extraDockerArgs"
+__dockerBuild $image "$imageTags $OSF" "$platforms" "$workDir" "$extraDockerArgs"
 __createGitTag $tagName

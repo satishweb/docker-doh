@@ -1,0 +1,64 @@
+# Author: Satish Gaikwad <satish@satishweb.com>
+FROM golang:1.13-buster AS doh-build
+LABEL MAINTAINER satish@satishweb.com
+
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN apt-get update && apt-get -y install \
+    build-essential \
+    git \
+    make \
+    jq \
+    curl
+
+WORKDIR /src
+
+# Lets download latest version of DOH
+RUN set -x ;\
+    DOH_VERSION_LATEST="$(curl -s https://api.github.com/repos/m13253/dns-over-https/tags|jq -r '.[0].name')" \
+    && curl -L "https://github.com/m13253/dns-over-https/archive/${DOH_VERSION_LATEST}.zip" -o doh.zip \
+    && unzip doh.zip \
+    && rm doh.zip \
+    && cd dns-over-https* \
+    && make doh-server/doh-server \
+    && mkdir /dist \
+    && cp doh-server/doh-server /dist/doh-server \
+    && echo ${DOH_VERSION_LATEST} > /dist/doh-server.version
+
+FROM ubuntu:20.04
+LABEL MAINTAINER satish@satishweb.com
+
+ENV DEBIAN_FRONTEND noninteractive
+
+COPY --from=doh-build /dist /server
+COPY doh-server.sample.conf /server/doh-server.sample.conf
+
+# Install required packages by docker-entrypoint
+RUN apt-get update && apt-get -y install \
+      bash \
+      gettext \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    /var/cache/apt/archives/*deb
+
+# Add docker entrypoint and make it executable
+ADD docker-entrypoint /docker-entrypoint
+RUN chmod u+x /docker-entrypoint
+
+# Set environment defaults
+# We are using OpenDNS DNS server address as default
+# Here is the list of addresses: https://use.opendns.com/
+ENV UPSTREAM_DNS_SERVER="udp:208.67.222.222:53"
+ENV DOH_HTTP_PREFIX="/getnsrecord"
+ENV DOH_SERVER_LISTEN=":8053"
+ENV DOH_SERVER_TIMEOUT="10"
+ENV DOH_SERVER_TRIES="3"
+ENV DOH_SERVER_VERBOSE="false"
+
+EXPOSE 8053
+
+ENTRYPOINT ["/docker-entrypoint"]
+CMD [ "/server/doh-server", "-conf", "/server/doh-server.conf" ]
+
+# Healthcheck
+HEALTHCHECK --interval=1m --timeout=30s --start-period=1m CMD wget "localhost:$(echo ${DOH_SERVER_LISTEN}|awk -F '[:]' '{print $2}')$(echo ${DOH_HTTP_PREFIX})?name=google.com&type=A" -O /dev/null || exit 1
