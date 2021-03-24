@@ -9,7 +9,8 @@ RUN apt-get update && apt-get -y install \
     git \
     make \
     jq \
-    curl
+    curl \
+    unzip
 
 WORKDIR /src
 
