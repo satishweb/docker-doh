@@ -22,13 +22,7 @@ ifdef NO-CACHE
 	EXTRA_BUILD_PARAMS += --no-cache
 endif
 
-all:
-	./build.sh \
-	  --image-name "${IMAGE}" \
-	  --platforms "${PLATFORMS}" \
-	  --work-dir "${WORKDIR}" \
-	  --git-tag "${TAGNAME}" \
-	  ${EXTRA_BUILD_PARAMS}
+all: build-alpine build-ubuntu
 
 build-alpine:
 	$(L)./build.sh \
