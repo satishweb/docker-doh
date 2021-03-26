@@ -1,5 +1,9 @@
 # Docker Image for DNS Over HTTP Service (Works for Raspberry PI)
 
+## Upcoming features/enhancements
+- Helm chart for kubernetes deployments
+- Automated CICD
+
 ## Features
 - DNS Over HTTP
 - Custom upstream DNS server option
