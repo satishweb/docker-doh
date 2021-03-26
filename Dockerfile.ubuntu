@@ -46,6 +46,12 @@ RUN apt-get update && apt-get -y install \
 ADD docker-entrypoint /docker-entrypoint
 RUN chmod u+x /docker-entrypoint
 
+# Change owner of the server folder
+RUN chown -R nobody:nogroup /server
+
+# Tell docker that all future commands should run as nobody
+USER nobody
+
 # Set environment defaults
 # We are using OpenDNS DNS server address as default
 # Here is the list of addresses: https://use.opendns.com/
