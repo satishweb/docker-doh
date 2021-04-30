@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: docker-doh-build-workflow-template
+  labels:
+    workflows.argoproj.io/archive-strategy: "false"
+spec:
+  entrypoint: workflow-template-build-docker-images
+  arguments:
+    parameters:
+      - name: giturl
+        default: "git@github.com:satishweb/docker-doh.git"
+      - name: revision
+        default: "master"
+      - name: tag
+        default: "devel-ubuntu"
+  templates:
+    - name: workflow-template-build-docker-images
+      steps:
+        - - name: build-ubuntu-image-template
+            templateRef:
+              name: workflow-template-build-with-kaniko
+              template: build-with-kaniko-template
+            arguments:
+              parameters:
+                - name: giturl
+                  value: "{{workflow.parameters.giturl}}"
+                - name: revision
+                  value: "{{workflow.parameters.revision}}"
+                - name: tag
+                  value: "{{workflow.parameters.tag}}"
+                - name: dockerfile
+                  value: "Dockerfile.ubuntu"
+                - name: context
+                  value: "."
+                - name: imageName
+                  value: "satishweb/doh-server"
+                - name: containerRegistryUrl
+                  value: "container-registry.prod.k8s.satishweb.com"

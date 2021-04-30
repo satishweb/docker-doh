@@ -3,10 +3,12 @@ kind: Sensor
 metadata:
   name: docker-doh-sensor-github
 spec:
+  entrypoint: docker-doh-build-workflow-template
   template:
-    serviceAccountName: argo-server-service-account
+    # serviceAccountName: argo-events-sa
+    serviceAccountName: argo-webhook-service-account
     container:
-      # We don't a lot of resources for this, lets limit that
+      # We don't need a lot of resources for this, lets limit that
       resources:
         requests:
           cpu: '0.5'
@@ -17,10 +19,10 @@ spec:
   dependencies:
     - name: docker-doh-event-source-github
       eventSourceName: docker-doh-event-source-github
-      eventName: docker-doh-events
+      eventName: events-docker-doh
   triggers:
     - template:
-        name: docker-doh-github-event-trigger
+        name: docker-doh-build-workflow-template
         k8s:
           group: argoproj.io
           version: v1alpha1
@@ -35,11 +37,32 @@ spec:
               spec:
                 arguments:
                   parameters:
-                    - name: message
+                    - name: giturl
+                    - name: revision
+                    - name: tag
                 workflowTemplateRef:
-                  # Check name in workflows/docker-doh-build-ubuntu-workflow.yaml
-                  name: docker-doh-build-ubuntu
+                  name: docker-doh-build-workflow-template
+                securityContext:
+                  privileged: false
+                ttlStrategy:
+                  secondsAfterSuccess: 86400
+                parallelism: 3
+                activeDeadlineSeconds: 7200
           parameters:
             - src:
                 dependencyName: docker-doh-event-source-github
+                dataTemplate: "{{ .Input.body.repository.ssh_url }}"
               dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: docker-doh-event-source-github
+                dataTemplate: "{{ .Input.body.after }}"
+              dest: spec.arguments.parameters.1.value
+            - src:
+                dependencyName: docker-doh-event-source-github
+                dataTemplate: "{{ .Input.body.after }}"
+              dest: spec.arguments.parameters.2.value
+            - src:
+                dependencyName: docker-doh-event-source-github
+                dataTemplate: "{{ .Input.body.after }}"
+              dest: metadata.generateName
+              operation: append

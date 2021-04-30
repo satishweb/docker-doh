@@ -3,4 +3,4 @@ kind: Kustomization
 namespace: prod-argo-server
 
 resources:
-  - docker-doh-build-ubuntu-workflow-template.yaml
+  - build-workflow-template.yaml
