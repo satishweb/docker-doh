@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: docker-doh-sensor-github
+spec:
+  template:
+    serviceAccountName: argo-server-service-account
+    container:
+      # We don't a lot of resources for this, lets limit that
+      resources:
+        requests:
+          cpu: '0.5'
+          memory: 512Mi
+        limits:
+          cpu: '1'
+          memory: 1Gi
+  dependencies:
+    - name: docker-doh-event-source-github
+      eventSourceName: docker-doh-event-source-github
+      eventName: docker-doh-events
+  triggers:
+    - template:
+        name: docker-doh-github-event-trigger
+        k8s:
+          group: argoproj.io
+          version: v1alpha1
+          resource: workflows
+          operation: create
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: github-ci-
+              spec:
+                arguments:
+                  parameters:
+                    - name: message
+                workflowTemplateRef:
+                  # Check name in workflows/docker-doh-build-ubuntu-workflow.yaml
+                  name: docker-doh-build-ubuntu
+          parameters:
+            - src:
+                dependencyName: docker-doh-event-source-github
+              dest: spec.arguments.parameters.0.value

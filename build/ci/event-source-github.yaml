@@ -1,0 +1,44 @@
+# Info on GitHub Webhook: https://developer.github.com/v3/repos/hooks/#create-a-hook
+apiVersion: argoproj.io/v1alpha1
+kind: EventSource
+metadata:
+  name: docker-doh-event-source-github
+spec:
+  service:
+    # This port is used for local event listener container
+    ports:
+      - port: 12000
+        targetPort: 12000
+  github:
+    # Key name is used as eventName in the Sensor resource
+    events-docker-doh:
+      # This is the orgname or username that contains the repository
+      owner: satishweb
+      repository: docker-doh
+      webhook:
+        # endpoint is structured to avoid conflict with other webhook endpoints on shared FQDN address
+        endpoint: /github/satishweb/docker-doh/all
+        port: "12000"
+        method: POST
+        # This URL should be a runtime variable
+        url: https://argo-events.prod.k8s.satishweb.com
+#        # k8s secret that contains the cert
+#        serverCertSecret:
+#          name: my-secret
+#          key: cert-key
+#        # k8s secret that contains the private key
+#        serverKeySecret:
+#          name: my-secret
+#          key: pk-key
+      events:
+        - "*"
+      apiToken:
+        name: github-pat
+        key: github-pat
+      webhookSecret:
+        # Must for security. We want only github talking to our endpoint
+        name: docker-doh-webhook-secret
+        key: webhook_secret
+      insecure: false
+      active: true
+      contentType: json

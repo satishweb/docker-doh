@@ -1,0 +1,15 @@
+# This patch will create new backend service configuration for defined endpoint path unique to this repo
+# Note: Patching strategy might needs to be changed if deploying multiple projects separately does not remove existing configurations
+- op: add
+  path: /spec/rules/0/http/paths/-
+  value:
+    backend:
+      service:
+        # Below service name is same as github event source resource name.
+        # Postfix '-eventsource-svc' is added automatically for service
+        name: docker-doh-event-source-github-eventsource-svc
+        port:
+          number: 12000
+    # This path must be unique to this repo to ensure no conflict with other repo configs
+    path: /github/satishweb/docker-doh/all
+    pathType: ImplementationSpecific

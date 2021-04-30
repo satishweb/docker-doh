@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: prod-argo-server
+
+secretGenerator:
+  - name: docker-doh-webhook-secret
+    options:
+      annotations:
+        # Auto generate the webhook secret, any changes to the secrets are handled by argo events automatically.
+        secret-generator.v1.mittwald.de/autogenerate: webhook_secret
+
+generatorOptions:
+  # We have to disable hash suffix for secrets because secret name value is not automatically updated by kustomize in argo events eventsource resource.
+  # Argo events needs a change in eventsource CRD to ensure kustomize can detect and handle the dynamic secret name.
+  disableNameSuffixHash: true
+
+resources:
+  - event-source-github.yaml
+  - sensor-github.yaml

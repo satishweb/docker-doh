@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: prod-argo-server
+
+resources:
+  # Including argo-server specs for variables for now, should be removed later when CI variables are configured at group level
+  - ../../iac-infra-k8s/argo-server/overlays/prod/
+  # argo-events endpoint is shared across all projects, we need to include it here to add backend configuration for this repo using json6902 patch
+  - ../../iac-infra-k8s/argo-server/argo-events-ingress
+  - ci/
+  - workflow-templates/
+
+patchesJson6902:
+  - target:
+      version: v1
+      group: networking.k8s.io
+      kind: Ingress
+      name: argo-events-ingress
+    path: ./patches/argo-events-ingress.yaml
+# Note: Patching strategy might needs to be changed if deploying multiple projects separately does not remove existing configurations
