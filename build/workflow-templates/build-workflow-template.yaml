@@ -13,7 +13,7 @@ spec:
       - name: revision
         default: "master"
       - name: tag
-        default: "devel-ubuntu"
+        default: "devel"
   templates:
     - name: workflow-template-build-docker-images
       steps:
