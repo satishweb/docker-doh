@@ -5,10 +5,9 @@ metadata:
 spec:
   entrypoint: docker-doh-build-workflow-template
   template:
-    # serviceAccountName: argo-events-sa
     serviceAccountName: argo-webhook-service-account
     container:
-      # We don't need a lot of resources for this, lets limit that
+      # We don't need a lot of resources for this, lets limit resources to bare minimum
       resources:
         requests:
           cpu: '0.5'
@@ -33,7 +32,7 @@ spec:
               apiVersion: argoproj.io/v1alpha1
               kind: Workflow
               metadata:
-                generateName: github-ci-
+                generateName: github-ci-docker-doh-
               spec:
                 arguments:
                   parameters:
