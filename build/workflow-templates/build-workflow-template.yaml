@@ -3,7 +3,7 @@ kind: WorkflowTemplate
 metadata:
   name: docker-doh-build-workflow-template
   labels:
-    workflows.argoproj.io/archive-strategy: "false"
+    workflows.argoproj.io/archive-strategy: "true"
 spec:
   entrypoint: workflow-template-build-docker-images
   arguments:
