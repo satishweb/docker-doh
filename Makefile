@@ -1,3 +1,4 @@
+# Makefile
 IMAGE=satishweb/doh-server
 ALPINE_PLATFORMS=linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6
 UBUNTU_PLATFORMS=linux/amd64,linux/arm/v7
