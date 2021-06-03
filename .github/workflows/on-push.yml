@@ -1,9 +1,11 @@
 # This is for github actions testing, to be removed later
+name: CI Test
 on:
   push:
-    paths:
-    - '/**'
+    branches: [ ci-integration ]
   pull_request:
+  # allow test from actions tab
+  workflow_dispatch:
 
 jobs:
   Build:
