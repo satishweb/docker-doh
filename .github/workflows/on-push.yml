@@ -1,0 +1,39 @@
+# This is for github actions testing, to be removed later
+on:
+  push:
+    paths:
+    - '/**'
+  pull_request:
+
+jobs:
+  Build:
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        # We must fetch at least the immediate parents so that if this is
+        # a pull request then we can checkout the head.
+        fetch-depth: 2
+    - name: Install Dependencies
+      shell: bash
+      run: |
+       export DEBIAN_FRONTEND=noninteractive
+       sudo apt-get -y update && sudo apt-get -y install libtool cmake automake autoconf make curl unzip jq
+       mkdir -p test/bin
+       echo -e '#!/bin/bash\necho "Command was executed successfully"\n' > test/bin/testcmd
+       chmod +x test/bin/testcmd
+       export PATH=test/bin:$PATH
+       echo "Step - Deps: jq is installed at $(which jq)"
+
+
+    - name: Build
+      run: |
+       echo "Step - Build: jq is installed at $(which jq)"
+       echo "Build is successful"
+
+    - name: Clean Artifacts
+      run: |
+        git clean -xdf
