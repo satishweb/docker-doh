@@ -1,15 +1,16 @@
 # Docker Image for DNS Over HTTP Service (Works for Raspberry PI)
 
 ## Upcoming features/enhancements
-- Helm chart for kubernetes deployments
-- Automated CICD
+- Helm chart for kubernetes deployments (current chart is usable but not tied to the latest version of DOH)
+- Automated CICD using Github Actions
+- Kubernetes deployment examples
 
 ## Features
 - DNS Over HTTP
 - Custom upstream DNS server option
 - Support for custom script execution (/app-config)
 - Support for linux/amd64,linux/arm64,linux/arm/v7
-- Alpine based tiny images
+- Alpine based tiny images. Ubuntu based image for those who can not use alpine.
 - A great example of full DOH Server setup using Docker Compose
 
 ## Why?
