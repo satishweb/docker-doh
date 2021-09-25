@@ -66,7 +66,7 @@ services:
 
 ## Build Docker image
 ```bash
-docker build . --no-cache -t satishweb/doh-server
+docker build . --no-cache -t satishweb/doh-server -f Dockerfile.alpine
 ```
 ## Pull Docker Hub Image
 ```bash
