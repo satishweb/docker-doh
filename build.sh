@@ -115,7 +115,7 @@ __validations() {
 
   # Check for buildx env
   if [[ "$(docker buildx ls\
-           |grep -e " *default*.*running linux/amd64"\
+           |grep -e ".*default.*running.*linux/amd64"\
            |wc -l\
           )" -lt "1" ]]; then
     __errCheck "1" "Docker buildx env is not setup, please fix it"

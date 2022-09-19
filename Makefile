@@ -8,8 +8,8 @@ OSF?=alpine
 # Set L to + for debug
 L=@
 
-UBUNTU_IMAGE=ubuntu:20.04
-ALPINE_IMAGE=alpine:1.13
+UBUNTU_IMAGE=ubuntu:22.04
+ALPINE_IMAGE=alpine:3.16
 
 ifdef PUSH
 	EXTRA_BUILD_PARAMS = --push-images --push-git-tags
