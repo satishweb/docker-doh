@@ -123,8 +123,8 @@ __validations() {
 }
 
 __checkSource() {
-  # Lets do git pull if push is enabled
-  if [[ "$imgPush" == "yes" ]]; then
+  # Lets do git pull if tag push is enabled
+  if [[ "$tagPush" == "yes" ]]; then
     git checkout master >/dev/null 2>&1
     __errCheck "$?" "Git checkout to master branch failed..."
     git pull >/dev/null 2>&1
@@ -147,10 +147,10 @@ __setupDocker() {
 
 __createGitTag() {
   # Lets create git tag
-  echo "INFO: Creating local git tag: $tagName"
-  git tag -d $tagName >/dev/null 2>&1
-  git tag $tagName >/dev/null 2>&1
   if [[ "$tagPush" == "yes" ]]; then
+    echo "INFO: Creating local git tag: $tagName"
+    git tag -d $tagName >/dev/null 2>&1
+    git tag $tagName >/dev/null 2>&1
     echo "INFO: Pushing git tag to remote: $tagName"
     git push --delete origin $tagName >/dev/null 2>&1
     git push -f origin $tagName >/dev/null 2>&1

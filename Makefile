@@ -11,9 +11,14 @@ L=@
 UBUNTU_IMAGE=ubuntu:22.04
 ALPINE_IMAGE=alpine:3.19
 
-ifdef PUSH
-	EXTRA_BUILD_PARAMS = --push-images --push-git-tags
+ifdef PUSH_IMAGES
+	EXTRA_BUILD_PARAMS = --push-images
 endif
+
+ifdef PUSH_GIT_TAGS
+	EXTRA_BUILD_PARAMS = --push-git-tags
+endif
+
 
 ifdef LATEST
 	EXTRA_BUILD_PARAMS += --mark-latest
@@ -47,7 +52,8 @@ test:
 	$(L)docker build -t ${IMAGE}:${TAGNAME} -f ./Dockerfile.${OSF} .
 
 # Commands:
-#   make test OSF=apline
-#   make test OSF=ubuntu
-#   make all LATEST=true PUSH=true
-#   make all LATEST=true PUSH=true IMAGE=satishweb/doh-server
+#   make test OSF=apline # test alpine dockerfile
+#   make test OSF=ubuntu # test ubuntu dockerfile
+#   make all # Test all platforms on alpine and ubuntu
+#   make all LATEST=true PUSH_IMAGES=true PUSH_GIT_TAGS=true # Build and push images with latest tag and push git tags
+#   make all LATEST=true PUSH_IMAGES=true IMAGE=satishweb/doh-server-test # Build and push images with latest tag and push git tags to satishweb/doh-server-test
