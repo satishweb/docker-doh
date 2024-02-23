@@ -9,7 +9,7 @@ OSF?=alpine
 L=@
 
 UBUNTU_IMAGE=ubuntu:22.04
-ALPINE_IMAGE=alpine:3.16
+ALPINE_IMAGE=alpine:3.19
 
 ifdef PUSH
 	EXTRA_BUILD_PARAMS = --push-images --push-git-tags
