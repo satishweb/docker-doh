@@ -64,6 +64,28 @@ services:
       #     - node.labels.type == worker
 ```
 
+## Docker Buildx Setup
+
+### Setup: Mac M1/x86
+- `brew install colima`
+- `colima start --cpu 8 --memory 16 --disk 150`
+- `docker context use colima`
+- `docker run --rm --privileged multiarch/qemu-user-static --reset -p yes`
+- `docker buildx rm builder || true`
+
+### Setup: Mac M1 (buildx)
+- `brew install colima`
+- `colima start --arch x86_64 --cpu 8 --memory 16 --disk 150 -p buildx`
+- `docker context use colima-buildx`
+- `docker run --rm --privileged multiarch/qemu-user-static --reset -p yes`
+- `docker buildx rm builder || true`
+
+### Setup: Linux
+- Install Docker cli + Containerd
+- Install docker-compose
+- `docker run --rm --privileged multiarch/qemu-user-static --reset -p yes`
+- `docker buildx rm builder || true`
+
 ## Build Docker image
 ```bash
 docker build . --no-cache -t satishweb/doh-server -f Dockerfile.alpine
