@@ -83,10 +83,10 @@ docker pull satishweb/doh-server
 ### Steps
 - Visit https://github.com/satishweb/docker-doh/releases and download the latest release to your server
 ```bash
-wget https://github.com/satishweb/docker-doh/archive/v2.3.3.zip
-unzip v2.3.3.zip
-cp -rf docker-doh-2.3.3/examples/docker-compose-doh-server doh-server
-rm -rf v2.3.3.zip docker-doh-2.3.3
+wget https://github.com/satishweb/docker-doh/archive/v2.3.5.zip
+unzip v2.3.5.zip
+cp -rf docker-doh-2.3.5/examples/docker-compose-doh-server doh-server
+rm -rf v2.3.5.zip docker-doh-2.3.5
 cd doh-server
 ```
 - Copy env.sample.conf to env.conf and update environment variables
