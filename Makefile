@@ -45,3 +45,9 @@ build-ubuntu:
 
 test:
 	$(L)docker build -t ${IMAGE}:${TAGNAME} -f ./Dockerfile.${OSF} .
+
+# Commands:
+#   make test OSF=apline
+#   make test OSF=ubuntu
+#   make all LATEST=true PUSH=true
+#   make all LATEST=true PUSH=true IMAGE=satishweb/doh-server
