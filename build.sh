@@ -140,9 +140,6 @@ __setupDocker() {
     __errCheck "$?" "Docker login failed..."
     extraDockerArgs+=" --push"
   fi
-  docker buildx create --name builder >/dev/null 2>&1
-  docker buildx use builder >/dev/null 2>&1
-  __errCheck "$?" "Could not use docker buildx default runner..."
 }
 
 __createGitTag() {
