@@ -51,10 +51,19 @@ build-ubuntu:
 
 test:
 	$(L)docker build -t ${IMAGE}:${TAGNAME} -f ./Dockerfile.${OSF} .
+	$(L)${MAKE} run-tests
+
+test-all:
+	$(L)${MAKE} all PUSH_IMAGES=true
+	$(L)${MAKE} run-tests IMAGE=${IMAGE}:${TAGNAME}
+
+run-tests:
+	$(L)cd tests; pipenv install
+	$(L)cd tests; pipenv run python ./test-doh-server.py --image ${IMAGE}:${TAGNAME}
 
 # Commands:
-#   make test OSF=apline # test alpine dockerfile
-#   make test OSF=ubuntu # test ubuntu dockerfile
-#   make all # Test all platforms on alpine and ubuntu
+#   make test OSF=alpine # Build local platform image and then run tests for alpine dockerfile
+#   make test OSF=ubuntu # Build local platform image and then run tests for ubuntu dockerfile
+#   make all # Test all platforms docker container image build for alpine and ubuntu (no tests)
+#   make test-all # Build, push images and then run tests
 #   make all LATEST=true PUSH_IMAGES=true PUSH_GIT_TAGS=true # Build and push images with latest tag and push git tags
-#   make all LATEST=true PUSH_IMAGES=true IMAGE=satishweb/doh-server-test # Build and push images with latest tag and push git tags to satishweb/doh-server-test
