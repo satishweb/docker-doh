@@ -1,6 +1,7 @@
 IMAGE=satishweb/doh-server
-ALPINE_PLATFORMS=linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6
-UBUNTU_PLATFORMS=linux/amd64,linux/arm/v7
+ALPINE_PLATFORMS=linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6,linux/ppc64le,linux/s390x,linux/386
+UBUNTU_PLATFORMS=linux/amd64,linux/arm/v7,linux/ppc64le,linux/s390x
+
 WORKDIR=$(shell pwd)
 TAGNAME?=$(shell curl -s https://api.github.com/repos/m13253/dns-over-https/tags|jq -r '.[0].name')
 OSF?=alpine
