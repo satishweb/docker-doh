@@ -17,7 +17,7 @@ ifdef PUSH_IMAGES
 endif
 
 ifdef PUSH_GIT_TAGS
-	EXTRA_BUILD_PARAMS = --push-git-tags
+	EXTRA_BUILD_PARAMS += --push-git-tags
 endif
 
 
