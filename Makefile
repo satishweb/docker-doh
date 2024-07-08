@@ -58,7 +58,7 @@ test-all:
 	$(L)${MAKE} run-tests IMAGE=${IMAGE}:${TAGNAME}
 
 run-tests:
-	$(L)cd tests; pipenv install
+	$(L)cd tests; pipenv install --python 3.10
 	$(L)cd tests; pipenv run python ./test-doh-server.py --image ${IMAGE}:${TAGNAME}
 
 # Commands:
