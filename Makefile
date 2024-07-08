@@ -55,11 +55,11 @@ test:
 
 test-all:
 	$(L)${MAKE} all PUSH_IMAGES=true
-	$(L)${MAKE} run-tests IMAGE=${IMAGE}:${TAGNAME}
+	$(L)${MAKE} run-tests IMAGE=${IMAGE} TAGNAME=${TAGNAME}
 
 run-tests:
 	$(L)cd tests; pipenv install --python 3.10
-	$(L)cd tests; pipenv run python ./test-doh-server.py --image ${IMAGE}:${TAGNAME}
+	$(L)cd tests; pipenv run python ./test-doh-server.py --image ${IMAGE}:${TAGNAME}-alpine
 
 # Commands:
 #   make test OSF=alpine # Build local platform image and then run tests for alpine dockerfile
