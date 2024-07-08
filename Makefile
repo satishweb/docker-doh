@@ -1,4 +1,5 @@
 IMAGE=satishweb/doh-server
+IMAGE_TEST=satishweb/doh-server-test
 ALPINE_PLATFORMS=linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6,linux/ppc64le,linux/s390x,linux/386
 UBUNTU_PLATFORMS=linux/amd64,linux/arm/v7,linux/ppc64le,linux/s390x
 
@@ -50,12 +51,12 @@ build-ubuntu:
 	  $$(echo ${EXTRA_BUILD_PARAMS}|sed 's/--mark-latest//')
 
 test:
-	$(L)docker build -t ${IMAGE}:${TAGNAME} -f ./Dockerfile.${OSF} .
+	$(L)docker build -t ${IMAGE_TEST}:${TAGNAME} -f ./Dockerfile.${OSF} .
 	$(L)${MAKE} run-tests
 
 test-all:
 	$(L)${MAKE} all PUSH_IMAGES=true
-	$(L)${MAKE} run-tests IMAGE=${IMAGE} TAGNAME=${TAGNAME}
+	$(L)${MAKE} run-tests IMAGE=${IMAGE_TEST} TAGNAME=${TAGNAME}
 
 run-tests:
 	$(L)cd tests; pipenv install --python 3.10
