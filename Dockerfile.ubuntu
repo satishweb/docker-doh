@@ -1,5 +1,5 @@
 # Author: Satish Gaikwad <satish@satishweb.com>
-FROM golang:1.20-bullseye AS doh-build
+FROM golang:1.22-bullseye AS doh-build
 LABEL MAINTAINER satish@satishweb.com
 
 ENV DEBIAN_FRONTEND noninteractive

@@ -29,6 +29,7 @@ __usage() {
   echo "  --no-cache      : Avoid use of docker build cache"
   echo "  --docker-file   : Path to the docker file from working dir"
   echo "  --docker-args   : Additional docker command arguments to supply"
+  echo "  --docker-buildx-cmd : docker buildx command to use"
   echo "  -h|--help       : Prints this help menu"
   exit 1
 }
@@ -74,6 +75,14 @@ __processParams() {
                        dockerArgs=$1
                        extraDockerArgs+=" dockerArgs"
                        ;;
+      --docker-buildx-cmd) shift
+                       dockerBuildxCmd="$1"
+                       # Check if the next argument exists and is not a flag
+                       if [[ "$2" && "$2" != -* ]]; then
+                         dockerBuildxCmd+=" $2"
+                         shift # Skip the second part of the command
+                       fi
+                       ;;
       -h|--help)       __usage
                        ;;
       * )              __usage "Missing or incorrect parameters"
@@ -88,6 +97,7 @@ __processParams() {
   [[ ! $workDir ]] && workDir=$(pwd)
   [[ ! $image ]] && image=$(basename $(pwd))
   OSF=$(echo ${dockerFile}|cut -d '.' -f 2)
+  [[ ! $dockerBuildxCmd ]] && dockerBuildxCmd="docker buildx"
 }
 
 __errCheck(){
@@ -105,7 +115,7 @@ __dockerBuild(){
 
   tagParams=""
   for i in $2; do tagParams+=" -t $1:$i"; done
-  docker buildx build --platform "$3" $5 $tagParams -f $4/$dockerFile .
+  eval $dockerBuildxCmd build --platform "$3" $5 $tagParams -f $4/$dockerFile .
   __errCheck "$?" "Docker Build failed"
 }
 
@@ -114,10 +124,7 @@ __validations() {
   ! [[ "$tagPush" =~ ^(yes|no)$ ]] && tagPush=no
 
   # Check for buildx env
-  if [[ "$(docker buildx ls\
-           |grep -e ".*default.*running.*linux/amd64"\
-           |wc -l\
-          )" -lt "1" ]]; then
+  if [[ $(eval $dockerBuildxCmd ls 2>/dev/null | sed -n '/\*/{n;p;}' | grep -q 'running') ]]; then
     __errCheck "1" "Docker buildx env is not setup, please fix it"
   fi
 }

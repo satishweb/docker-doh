@@ -2,6 +2,7 @@ IMAGE=satishweb/doh-server
 IMAGE_TEST=satishweb/doh-server-test
 ALPINE_PLATFORMS=linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6,linux/ppc64le,linux/s390x,linux/386
 UBUNTU_PLATFORMS=linux/amd64,linux/arm/v7,linux/ppc64le,linux/s390x
+DOCKER_BUILDX_CMD?=docker buildx
 
 WORKDIR=$(shell pwd)
 TAGNAME?=$(shell curl -s https://api.github.com/repos/m13253/dns-over-https/tags|jq -r '.[0].name')
@@ -39,6 +40,7 @@ build-alpine:
 	  --work-dir "${WORKDIR}" \
 	  --git-tag "${TAGNAME}-alpine" \
 	  --docker-file "Dockerfile.alpine" \
+      --docker-buildx-cmd "${DOCKER_BUILDX_CMD}" \
 	  ${EXTRA_BUILD_PARAMS}
 
 build-ubuntu:
@@ -48,6 +50,7 @@ build-ubuntu:
 	  --work-dir "${WORKDIR}" \
 	  --git-tag "${TAGNAME}-ubuntu" \
 	  --docker-file "Dockerfile.ubuntu" \
+      --docker-buildx-cmd "'${DOCKER_BUILDX_CMD}'" \
 	  $$(echo ${EXTRA_BUILD_PARAMS}|sed 's/--mark-latest//')
 
 test:

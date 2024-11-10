@@ -1,5 +1,5 @@
 # Author: Satish Gaikwad <satish@satishweb.com>
-FROM golang:1.20-alpine AS doh-build
+FROM golang:1.22-alpine AS doh-build
 LABEL MAINTAINER satish@satishweb.com
 
 RUN apk add --no-cache git make jq curl
