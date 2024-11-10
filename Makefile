@@ -1,7 +1,7 @@
 IMAGE=satishweb/doh-server
 IMAGE_TEST=satishweb/doh-server-test
 ALPINE_PLATFORMS=linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6,linux/ppc64le,linux/s390x,linux/386
-UBUNTU_PLATFORMS=linux/amd64,linux/arm/v7,linux/ppc64le,linux/s390x
+UBUNTU_PLATFORMS=linux/amd64,linux/arm/v7,linux/ppc64le,linux/386
 DOCKER_BUILDX_CMD?=docker buildx
 
 WORKDIR=$(shell pwd)
