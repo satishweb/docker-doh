@@ -1,8 +1,8 @@
 # Author: Satish Gaikwad <satish@satishweb.com>
 FROM golang:1.22-bullseye AS doh-build
-LABEL MAINTAINER satish@satishweb.com
+LABEL MAINTAINER=satish@satishweb.com
 
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get -y install \
     build-essential \
@@ -28,9 +28,9 @@ RUN set -x ;\
     && echo ${DOH_VERSION_LATEST} > /dist/doh-server.version
 
 FROM ubuntu:22.04
-LABEL MAINTAINER satish@satishweb.com
+LABEL MAINTAINER=satish@satishweb.com
 
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 
 COPY --from=doh-build /dist /server
 COPY doh-server.sample.conf /server/doh-server.sample.conf
