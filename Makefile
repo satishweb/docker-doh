@@ -50,7 +50,7 @@ build-ubuntu:
 	  --work-dir "${WORKDIR}" \
 	  --git-tag "${TAGNAME}-ubuntu" \
 	  --docker-file "Dockerfile.ubuntu" \
-      --docker-buildx-cmd "'${DOCKER_BUILDX_CMD}'" \
+      --docker-buildx-cmd "${DOCKER_BUILDX_CMD}" \
 	  $$(echo ${EXTRA_BUILD_PARAMS}|sed 's/--mark-latest//')
 
 test:
