@@ -29,6 +29,18 @@ do
     printf "| ENTRYPOINT: Exporting var: $varName\n"
 done
 
+# If UPSTREAM_DNS_SERVER contains a comma (i.e., multiple servers are provided)
+if [[ "$UPSTREAM_DNS_SERVER" == *","* ]]; then
+    # Convert the comma-separated list into a valid array for the config file
+    upstream_servers=$(echo "$UPSTREAM_DNS_SERVER" | sed 's/,/","/g')
+    upstream_servers="[\"$upstream_servers\"]"
+else
+    # If only a single DNS server is provided, use it as before
+    upstream_servers="[\"$UPSTREAM_DNS_SERVER\"]"
+fi
+
+export upstream_servers
+
 # lets generate config file by replacing all variables inside of it.
 TMP_FILE=/tmp/doh-server.conf
 cp ${DOH_CONFIG_SAMPLE_FILE} ${TMP_FILE}
