@@ -62,7 +62,7 @@ test-all:
 	$(L)${MAKE} run-tests IMAGE=${IMAGE_TEST} TAGNAME=${TAGNAME}
 
 run-tests:
-	$(L)cd tests; pipenv install --python 3.10
+	$(L)cd tests; pipenv install --python 3.12
 	$(L)cd tests; pipenv run python ./test-doh-server.py --image ${IMAGE}:${TAGNAME}-alpine
 
 # Commands:
