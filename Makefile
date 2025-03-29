@@ -11,9 +11,6 @@ OSF?=alpine
 # Set L to + for debug
 L=@
 
-UBUNTU_IMAGE=ubuntu:22.04
-ALPINE_IMAGE=alpine:3.19
-
 ifdef PUSH_IMAGES
 	EXTRA_BUILD_PARAMS = --push-images
 endif
