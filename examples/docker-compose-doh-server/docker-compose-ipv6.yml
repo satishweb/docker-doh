@@ -1,0 +1,41 @@
+# Author: satish@satishweb.com
+# IPv6 support override for the DNS over HTTPS stack.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose-ipv6.yml up -d
+#
+# The launch script picks this file up automatically when IPV6=true is set in
+# env.conf.
+#
+# Note: the host needs IPv6 support and dockerd must be started with
+#       "ipv6 = true" in /etc/docker/daemon.json for dual stack networks.
+
+networks:
+  default:
+    enable_ipv6: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.30.0.0/16
+          gateway: 172.30.0.1
+        - subnet: fd00:d0h::/64
+
+services:
+  proxy:
+    command:
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--ping=true"
+      - "--certificatesresolvers.letsencrypt.acme.dnschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.dnschallenge.provider=route53"
+      - "--certificatesresolvers.letsencrypt.acme.email=${EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/certs/acme.json"
+
+  unbound:
+    # Bind the resolver to IPv6 as well
+    environment:
+      DOMAIN_WHITELIST: ${DOMAIN_WHITELIST}
+      DO_IP6: "yes"
