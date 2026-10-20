@@ -1,0 +1,26 @@
+Allow the HTTP resolve endpoint to be served on multiple paths.
+
+The upstream server registers exactly one HTTP path on its ServeMux, so the
+DoH endpoint is only reachable under a single URL.  This patch splits the
+"path" configuration option on commas and registers every part, which makes it
+possible to serve the endpoint on the RFC 8484 standard path (/dns-query) as
+well as on the legacy path (/getnsrecord) at the same time.
+
+The patch is applied by the Docker build.  The build fails when the patch does
+not apply, so an upstream release that changed this code will not silently
+produce an image with a single path.
+
+--- a/doh-server/server.go
++++ b/doh-server/server.go
+@@ -101,7 +101,10 @@
+ 			LocalAddr: tcpLocalAddr,
+ 		}
+ 	}
+-	s.servemux.HandleFunc(conf.Path, s.handlerFunc)
++	// Multiple paths can be configured as a comma separated list.
++	for _, path := range strings.Split(conf.Path, ",") {
++		s.servemux.HandleFunc(path, s.handlerFunc)
++	}
+ 	return s, nil
+ }
+

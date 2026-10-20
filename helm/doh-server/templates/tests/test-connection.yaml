@@ -1,3 +1,4 @@
+{{- $probesPath := .Values.probesPath | default (get (.Values.env | default dict) "DOH_HTTP_PREFIX" | default "/dns-query") -}}
 apiVersion: v1
 kind: Pod
 metadata:
@@ -8,11 +9,13 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
   annotations:
-    "helm.sh/hook": test-success
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
   containers:
     - name: wget
       image: busybox
-      command: ['wget']
-      args:  ['{{ include "doh-server.fullname" . }}:{{ .Values.service.port }}']
+      command: ['sh', '-c']
+      args:
+        - 'wget -q -O - "http://{{ include "doh-server.fullname" . }}:{{ .Values.service.port }}{{ $probesPath }}?name=google.com&type=A"'
   restartPolicy: Never

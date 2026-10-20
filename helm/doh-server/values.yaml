@@ -16,10 +16,15 @@ env:
   DEBUG: "0"
   UPSTREAM_DNS_SERVER: "udp:8.8.8.8:53"
   DOH_HTTP_PREFIX: "/dns-query"
+  # Additional paths the resolve endpoint is served on (comma separated).
+  DOH_HTTP_PREFIXES: "/getnsrecord"
   DOH_SERVER_LISTEN: ":8053"
   DOH_SERVER_TIMEOUT: "10"
   DOH_SERVER_TRIES: "3"
   DOH_SERVER_VERBOSE: "false"
+  DOH_SERVER_LOG_GUESSED_CLIENT_IP: "false"
+  DOH_SERVER_ECS_ALLOW_NON_GLOBAL_IP: "false"
+  DOH_SERVER_ECS_USE_PRECISE_IP: "false"
 
 containerPort: 8053
 
@@ -36,6 +41,14 @@ ingress:
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
   pathType: Prefix
+  # Nginx specific annotations. They are only applied when className is nginx.
+  nginxAnnotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "86400"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST"
+    nginx.ingress.kubernetes.io/auth-cache-key: "$scheme$proxy_host$uri$is_args$args$request_body"
+    nginx.ingress.kubernetes.io/auth-cache-duration: "any 10m"
 
 resources:
   # We usually recommend not to specify default resources and to leave this as a conscious
@@ -49,7 +62,21 @@ resources:
      cpu: 100m
      memory: 128Mi
 
-probesQuery: name=google.com
+# Query used by the liveness and readiness probes.
+probesQuery: name=google.com&type=A
+# Path used by the liveness and readiness probes.
+# Defaults to env.DOH_HTTP_PREFIX when left empty.
+probesPath: ""
+
+podSecurityContext:
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
 
 nodeSelector: {}
 
