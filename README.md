@@ -223,10 +223,10 @@ Follow these steps to set up DOH Server on Linux, Mac, or Raspberry Pi in minute
 1. Download the latest release from [GitHub](https://github.com/satishweb/docker-doh/releases) to your server:
 
 ```bash
-wget https://github.com/satishweb/docker-doh/archive/v2.3.10.zip
-unzip v2.3.10.zip
-cp -rf docker-doh-2.3.10/examples/docker-compose-doh-server doh-server
-rm -rf v2.3.10.zip docker-doh-2.3.10
+wget https://github.com/satishweb/docker-doh/archive/v2.3.10-1-alpine.zip
+unzip v2.3.10-1-alpine.zip
+cp -rf docker-doh-2.3.10-1-alpine/examples/docker-compose-doh-server doh-server
+rm -rf v2.3.10-1-alpine.zip docker-doh-2.3.10-1-alpine
 cd doh-server
 ```
 
