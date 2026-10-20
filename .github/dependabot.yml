@@ -1,0 +1,18 @@
+version: 2
+updates:
+  # The test suite of this repository lives in its own directory and uses a
+  # Pipfile. All updates for it are grouped into a single pull request, so
+  # the Pipfile.lock does not have to be resolved over and over again.
+  - package-ecosystem: pip
+    directory: /tests
+    schedule:
+      interval: weekly
+    groups:
+      test-dependencies:
+        patterns:
+          - "*"
+    labels:
+      - dependencies
+      - python
+    commit-message:
+      prefix: "Bump"

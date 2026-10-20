@@ -207,6 +207,23 @@ requested one, so a wrong or truncated download can not slip through.
 docker pull satishweb/doh-server
 ```
 
+### Image Tags
+
+| Tag | Description |
+| --- | --- |
+| `latest` | The alpine image, this is the primary image. |
+| `alpine` | The alpine image, pinned to the latest release. |
+| `ubuntu` | The ubuntu image, pinned to the latest release. |
+| `v<version>-alpine` | The alpine image of a specific release, e.g. `v2.3.10-1-alpine`. |
+| `v<version>-ubuntu` | The ubuntu image of a specific release, e.g. `v2.3.10-1-ubuntu`. |
+
+The alpine image is the first choice and the ubuntu image is the second one,
+so the `latest` tag always points to the alpine image. The version in the tag
+is the version of the upstream
+[dns-over-https](https://github.com/m13253/dns-over-https) release that is
+built into the image. When the same upstream release is rebuilt, the tag gets
+a `-1`, `-2`, ... suffix.
+
 # Quick Setup Guide
 
 Follow these steps to set up DOH Server on Linux, Mac, or Raspberry Pi in minutes using Docker Compose.

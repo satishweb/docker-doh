@@ -33,13 +33,15 @@ endif
 ifdef LATEST
 	EXTRA_BUILD_PARAMS += --mark-latest
 endif
-
 ifdef NO_CACHE
 	EXTRA_BUILD_PARAMS += --no-cache
 endif
 
 all: build-alpine build-ubuntu
 
+# The alpine image is the primary one and the ubuntu image is the second
+# choice. The "latest" tag therefore always points to the alpine image, the
+# ubuntu build never gets it.
 build-alpine:
 	$(L)./build.sh \
 	  --image-name "${IMAGE}" \
