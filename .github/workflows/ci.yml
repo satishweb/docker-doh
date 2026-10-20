@@ -47,7 +47,7 @@ jobs:
       - name: Set up Helm
         uses: azure/setup-helm@v4
         with:
-          version: v3
+          version: v3.22.1
 
       - name: Lint chart
         run: helm lint helm/doh-server
@@ -64,9 +64,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install shellcheck
+        run: |
+          set -euo pipefail
+          version=0.11.0
+          archive="shellcheck-v${version}.linux.x86_64.tar.xz"
+          curl -fsSL -o "${archive}" \
+            "https://github.com/koalaman/shellcheck/releases/download/v${version}/${archive}"
+          echo "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198  ${archive}" \
+            | sha256sum --check
+          tar -xf "${archive}"
+          echo "SHELLCHECK_BIN=${PWD}/shellcheck-v${version}" >> "${GITHUB_ENV}"
+
       - name: Run shellcheck
-        uses: ludeeus/action-shellcheck@v0.10.0
-        with:
-          scandir: .
-          additional_files: 'docker-entrypoint build.sh app-config-example'
-          exclude: SC1091
+        run: |
+          "${SHELLCHECK_BIN}/shellcheck" --version
+          "${SHELLCHECK_BIN}/shellcheck" -x \
+            docker-entrypoint \
+            build.sh \
+            app-config-example \
+            examples/docker-compose-doh-server/launch.sh \
+            examples/docker-compose-doh-server/remove.sh

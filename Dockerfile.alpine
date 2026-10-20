@@ -4,9 +4,18 @@
 # https://github.com/m13253/dns-over-https/releases
 ARG DOH_VERSION=v2.3.10
 
-FROM golang:1.27-alpine AS doh-build
+# The platform the build itself runs on. BuildKit sets this
+# automatically, the fallback is only used by the legacy builder.
+ARG BUILDPLATFORM
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.27-alpine AS doh-build
 LABEL MAINTAINER=satish@satishweb.com
 ARG DOH_VERSION
+# The target platform is used to cross compile the server. The build itself
+# always runs on the native platform, which makes multi platform builds fast
+# and does not need any emulation.
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
 
 RUN apk add --no-cache git make jq curl unzip patch
 
@@ -22,11 +31,14 @@ RUN set -x ;\
     && rm doh.zip \
     && cd dns-over-https* \
     && patch -p1 --forward --batch < /tmp/multiple-paths.patch \
-    && make doh-server/doh-server \
+    && grep -qE "VERSION[[:space:]]*=[[:space:]]*\"${DOH_VERSION#v}\"" doh-server/version.go \
     && mkdir /dist \
+    && if [ -n "${TARGETARCH}" ] && [ "${TARGETARCH}" = "arm" ]; then export GOARM="${TARGETVARIANT#v}"; fi \
+    && CGO_ENABLED=0 GOOS="${TARGETOS}" GOARCH="${TARGETARCH}" GOARM="${GOARM:-}" \
+       make doh-server/doh-server \
     && cp doh-server/doh-server /dist/doh-server \
     && echo ${DOH_VERSION} > /dist/doh-server.version \
-    && /dist/doh-server -version | grep -q "^doh-server ${DOH_VERSION#v}$"
+    && go version -m /dist/doh-server | grep -q "m13253/dns-over-https"
 
 FROM alpine:3.24
 LABEL MAINTAINER=satish@satishweb.com \
