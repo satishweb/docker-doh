@@ -137,7 +137,8 @@ __validations() {
   ! [[ "$tagPush" =~ ^(yes|no)$ ]] && tagPush=no
 
   # Check for buildx env
-  if eval "$dockerBuildxCmd" ls 2>/dev/null | sed -n '/\*/{n;p;}' | grep -q 'running'; then
+  # The builder that is marked with a "*" has to be up and running.
+  if ! eval "$dockerBuildxCmd" ls 2>/dev/null | sed -n '/\*/{n;p;}' | grep -q 'running'; then
     __errCheck "1" "Docker buildx env is not setup, please fix it"
   fi
 }
