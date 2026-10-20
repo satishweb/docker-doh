@@ -4,20 +4,21 @@
 
 This Docker image provides a DNS Over HTTP (DOH) service, designed to enhance privacy and security by encrypting DNS queries. It supports custom upstream DNS servers and execution of custom scripts. The image is compatible with various architectures including linux/amd64, linux/arm64, and linux/arm/v7. It offers both Alpine and Ubuntu based images for flexibility.
 
-## Upcoming Features
-
-- Helm chart for Kubernetes deployments (current chart is usable but not tied to the latest version of DOH)
-- Automated CI/CD using Github Actions
-- Kubernetes deployment examples
+The image is a thin wrapper around the upstream project
+[m13253/dns-over-https](https://github.com/m13253/dns-over-https). The upstream
+release that is compiled into the image is pinned in the `DOH_VERSION` build
+argument and defaults to **v2.3.10**.
 
 ## Features
 
-- DNS Over HTTP support
-- Custom upstream DNS server option
+- DNS Over HTTP support (RFC 8484 wireformat and the Google JSON API)
+- Custom upstream DNS server option, multiple servers are supported
 - Support for custom script execution (/app-config)
+- Support for Docker / Swarm secrets
+- Support for a custom configuration file
 - Compatible with below architectures:
   - Alpine: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6,linux/ppc64le,linux/s390x,linux/386
-  - Ubuntu: linux/amd64,linux/arm/v7,linux/ppc64le,linux/s390x
+  - Ubuntu: linux/amd64,linux/arm/v7
 - Alpine based tiny images; Ubuntu based image also available
 - Comprehensive DOH Server setup example using Docker Compose
 
@@ -39,13 +40,91 @@ docker run -itd --name doh-server \
     satishweb/doh-server
 ```
 
+## Configuration
+
+The container is configured entirely through environment variables. They are
+substituted into `/server/doh-server.sample.conf` to generate
+`/server/doh-server.conf` at startup.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `UPSTREAM_DNS_SERVER` | `udp:208.67.222.222:53,udp:208.67.220.220:53` | Upstream resolver(s), comma separated. Prefix is `udp`, `tcp` or `tcp-tls`. A random server is picked for every attempt. |
+| `DOH_HTTP_PREFIX` | `/getnsrecord` | Primary HTTP path of the resolve endpoint. |
+| `DOH_HTTP_PREFIXES` | `/dns-query` | Additional HTTP paths the resolve endpoint is served on, comma separated. |
+| `DOH_SERVER_LISTEN` | `:8053` | Listen address of the HTTP server. |
+| `DOH_SERVER_TIMEOUT` | `10` | Upstream timeout in seconds. |
+| `DOH_SERVER_TRIES` | `3` | Number of attempts per query. |
+| `DOH_SERVER_VERBOSE` | `false` | Enable query logging. |
+| `DOH_SERVER_LOG_GUESSED_CLIENT_IP` | `false` | Log the client IP taken from `X-Forwarded-For` / `X-Real-IP`. |
+| `DOH_SERVER_ECS_ALLOW_NON_GLOBAL_IP` | `false` | Allow EDNS Client Subnet for non global (private) client IPs. |
+| `DOH_SERVER_ECS_USE_PRECISE_IP` | `false` | Use the full client IP for EDNS Client Subnet instead of a /24 or /56 mask. |
+| `DEBUG` | `0` | Set to `1` to trace the entrypoint script. |
+
+Empty values are replaced by the defaults above, so an unset variable never
+makes the container fail to start.
+
+### The HTTP path
+
+The resolve endpoint is served on **two paths by default**:
+
+| Path | Purpose |
+| --- | --- |
+| `/getnsrecord` | The historical path of this image. |
+| `/dns-query` | The RFC 8484 standard path. Chrome, Firefox, cloudflared and most other clients use it by default. |
+
+Both paths answer the exact same queries, so no client configuration is needed
+for browsers and operating systems. Use `DOH_HTTP_PREFIX` to change the primary
+path and `DOH_HTTP_PREFIXES` to change the additional ones:
+
+```bash
+docker run -itd --name doh-server \
+    -p 8053:8053 \
+    -e DOH_HTTP_PREFIX=/dns-query \
+    -e DOH_HTTP_PREFIXES="" \
+    satishweb/doh-server
+```
+
+Serving more than one path requires a small patch to the upstream server, see
+[`patches/multiple-paths.patch`](patches/multiple-paths.patch). The patch is
+applied during the build and the build fails when it does not apply.
+
+### Custom configuration file
+
+Mount your own configuration to replace the generated one completely. The file
+is used **as is**, no variable substitution is applied to it:
+
+```yaml
+    volumes:
+      - ./doh-server.conf:/server/doh-server.conf
+```
+
+The supported options are defined by the upstream project, see
+[`doh-server/config.go`](https://github.com/m13253/dns-over-https/blob/master/doh-server/config.go).
+The upstream server refuses to start when it encounters an unknown option.
+
+### Docker secrets
+
+Any variable that is referenced through a `<NAME>_FILE` environment variable is
+read from that file and exported. This works with Docker Compose `secrets:` and
+with Docker Swarm secrets:
+
+```yaml
+services:
+  doh-server:
+    image: satishweb/doh-server
+    environment:
+      UPSTREAM_DNS_SERVER_FILE: /run/secrets/UPSTREAM_DNS_SERVER
+    secrets:
+      - UPSTREAM_DNS_SERVER
+```
+
+Secret values are read verbatim, values containing whitespace or shell
+metacharacters are preserved. The resolved values are written to
+`/tmp/doh-secrets.env` inside the container for troubleshooting.
+
 ## Docker Configuration
 
 ```yaml
-version: '2.2'
-networks:
-  default:
-
 services:
   doh-server:
     image: satishweb/doh-server
@@ -113,6 +192,15 @@ docker buildx inspect --bootstrap
 docker build . --no-cache -t satishweb/doh-server -f Dockerfile.alpine
 ```
 
+To build a different upstream release:
+
+```bash
+docker build . --build-arg DOH_VERSION=v2.3.10 -t satishweb/doh-server -f Dockerfile.alpine
+```
+
+The build fails if the version of the downloaded source does not match the
+requested one, so a wrong or truncated download can not slip through.
+
 ## Pull Docker Hub Image
 
 ```bash
@@ -126,6 +214,7 @@ Follow these steps to set up DOH Server on Linux, Mac, or Raspberry Pi in minute
 ## Requirements
 
 - Raspberry Pi/Linux/Mac with Docker preinstalled (Required)
+- Docker Compose v2 (`docker compose`) (Required)
 - DNS Server Setup on AWS R53 (Other providers supported)
 - AWS Access Key, Secret key, and R53 DNS Hosted Zone ID (for LetsEncrypt based auto installation of SSL Certs) (Optional)
 
@@ -178,6 +267,12 @@ https://dns.example.com/getnsrecord
 curl -w '\n' 'https://dns.example.com/getnsrecord?name=google.com&type=A'
 ```
 
+The endpoint is also available on the RFC 8484 standard path:
+
+```bash
+curl -w '\n' 'https://dns.example.com/dns-query?name=google.com&type=A'
+```
+
 ## Common Issues and Debugging
 
 - If a proxy is still running with a self-signed certificate:
@@ -193,9 +288,33 @@ curl -w '\n' 'https://dns.example.com/getnsrecord?name=google.com&type=A'
   - Another program on the Docker host or one of the Docker containers may be using the same ports.
   - Stop those programs or change the proxy service ports to unused ports.
 
+- If the container exits right away with a message about the upstream:
+  - The upstream resolver list is invalid. Every entry needs a `udp`, `tcp` or
+    `tcp-tls` prefix, e.g. `udp:1.1.1.1:53`.
+
+## Health Check
+
+The image ships with a health check that queries the local server. The check
+passes when the server answers with `200` or `503`, so a broken upstream
+resolver does not make the container look unhealthy (and does not cause a
+restart loop in an orchestrator).
+
+## Security Notes
+
+The upstream server answers with `Access-Control-Allow-Origin: *`, which is
+required by the browser based DoH clients but also means that **any website can
+use your DoH server as a DNS proxy**. When the DoH server points at a private
+resolver this turns it into an open relay into your network.
+
+Always run the DoH server behind a reverse proxy that applies rate limiting.
+The provided compose example does this with the Traefik rate limit middleware.
+
 ## IPV6 Support
 
-Docker-compose configuration with IPV6 support will be added in the future.
+Set `IPV6=true` in `env.conf` before running `./launch.sh`. The launch script
+then adds `docker-compose-ipv6.yml` to the compose invocation, which enables
+IPv6 on the docker network. The docker daemon needs to be started with
+`ipv6 = true` in `/etc/docker/daemon.json` for dual stack networks.
 
 # How to Use DOH Server?
 
@@ -213,4 +332,12 @@ Install Cloudflared for Linux, Mac, or Windows. Set your DOH server as upstream 
 
 ```yaml
 proxy-dns: true
+```
+
+## Kubernetes
+
+A Helm chart is available in the `helm` directory:
+
+```bash
+helm install doh-server ./helm/doh-server --set env.UPSTREAM_DNS_SERVER="udp:8.8.8.8:53"
 ```

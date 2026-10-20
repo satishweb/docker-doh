@@ -1,5 +1,14 @@
 {{- if .Values.ingress.enabled -}}
 {{- $fullName := include "doh-server.fullname" . -}}
+{{- $annotations := dict -}}
+{{- with .Values.ingress.annotations -}}
+{{- $annotations = merge $annotations . -}}
+{{- end -}}
+{{- if eq .Values.ingress.className "nginx" -}}
+{{- with .Values.ingress.nginxAnnotations -}}
+{{- $annotations = merge $annotations . -}}
+{{- end -}}
+{{- end -}}
 apiVersion: {{ include "doh-server.ingress.apiVersion" . }}
 kind: Ingress
 metadata:
@@ -9,15 +18,9 @@ metadata:
     helm.sh/chart: {{ include "doh-server.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-  {{- with .Values.ingress.annotations }}
+  {{- if $annotations }}
   annotations:
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "86400"
-    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST"
-    nginx.ingress.kubernetes.io/auth-cache-key: "$scheme$proxy_host$uri$is_args$args$request_body"
-    nginx.ingress.kubernetes.io/auth-cache-duration: "any 10m"
-    {{- toYaml . | nindent 4 }}
+    {{- toYaml $annotations | nindent 4 }}
   {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
@@ -29,7 +32,7 @@ spec:
     - host: "{{ .Values.ingress.domainName }}"
       http:
         paths:
-          - path: /dns-query
+          - path: {{ .Values.probesPath | default (get (.Values.env | default dict) "DOH_HTTP_PREFIX" | default "/dns-query") }}
             {{- if eq (include "doh-server.ingress.apiVersion" $) "networking.k8s.io/v1" }}
             pathType: {{ .Values.ingress.pathType }}
             {{- end }}

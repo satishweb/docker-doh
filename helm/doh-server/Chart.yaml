@@ -1,5 +1,15 @@
-apiVersion: v1
-appVersion: "1.0"
+apiVersion: v2
+appVersion: "2.3.10"
 description: A Helm chart for Kubernetes
 name: doh-server
-version: 0.1.0
+version: 2.3.10
+keywords:
+  - dns
+  - doh
+  - dns-over-https
+home: https://github.com/satishweb/docker-doh
+sources:
+  - https://github.com/satishweb/docker-doh
+maintainers:
+  - name: Satish Gaikwad
+    email: satish@satishweb.com

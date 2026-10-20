@@ -1,4 +1,6 @@
 {{- $fullName := include "doh-server.fullname" . -}}
+{{- $env := .Values.env | default dict -}}
+{{- $probesPath := .Values.probesPath | default (get $env "DOH_HTTP_PREFIX" | default "/dns-query") -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -24,11 +26,15 @@ spec:
         app.kubernetes.io/name: {{ include "doh-server.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          env:          
+          env:
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
               value: "{{ $value }}"
@@ -39,12 +45,24 @@ spec:
               protocol: TCP
           livenessProbe:
             httpGet:
-              path: /dns-query?{{ .Values.probesQuery }}
+              path: "{{ $probesPath }}?{{ .Values.probesQuery }}"
               port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 15
+            failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /dns-query?{{ .Values.probesQuery }}
+              path: "{{ $probesPath }}?{{ .Values.probesQuery }}"
               port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 15
+            failureThreshold: 3
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

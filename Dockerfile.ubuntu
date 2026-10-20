@@ -1,6 +1,21 @@
 # Author: Satish Gaikwad <satish@satishweb.com>
-FROM golang:1.23-bullseye AS doh-build
+
+# Version of the upstream DNS over HTTPS server to build.
+# https://github.com/m13253/dns-over-https/releases
+ARG DOH_VERSION=v2.3.10
+
+# The platform the build itself runs on. BuildKit sets this
+# automatically, the fallback is only used by the legacy builder.
+ARG BUILDPLATFORM
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.27-bookworm AS doh-build
 LABEL MAINTAINER=satish@satishweb.com
+ARG DOH_VERSION
+# The target platform is used to cross compile the server. The build itself
+# always runs on the native platform, which makes multi platform builds fast
+# and does not need any emulation.
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -10,38 +25,54 @@ RUN apt-get update && apt-get -y install \
     make \
     jq \
     curl \
-    unzip
+    unzip \
+    patch \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
 
-# Lets download latest version of DOH
+COPY patches/multiple-paths.patch /tmp/multiple-paths.patch
+
+# Lets download the requested version of DOH
 ENV GOPROXY=https://proxy.golang.org,direct
 RUN set -x ;\
-    DOH_VERSION_LATEST="$(curl -s https://api.github.com/repos/m13253/dns-over-https/tags|jq -r '.[0].name')" \
-    && curl -L "https://github.com/m13253/dns-over-https/archive/${DOH_VERSION_LATEST}.zip" -o doh.zip \
+    curl -fL "https://github.com/m13253/dns-over-https/archive/${DOH_VERSION}.zip" -o doh.zip \
     && unzip doh.zip \
     && rm doh.zip \
     && cd dns-over-https* \
-    && make doh-server/doh-server \
+    && patch -p1 --forward --batch < /tmp/multiple-paths.patch \
+    && grep -qE "VERSION[[:space:]]*=[[:space:]]*\"${DOH_VERSION#v}\"" doh-server/version.go \
     && mkdir /dist \
+    && if [ -n "${TARGETARCH}" ] && [ "${TARGETARCH}" = "arm" ]; then export GOARM="${TARGETVARIANT#v}"; fi \
+    && CGO_ENABLED=0 GOOS="${TARGETOS}" GOARCH="${TARGETARCH}" GOARM="${GOARM:-}" \
+       make doh-server/doh-server \
     && cp doh-server/doh-server /dist/doh-server \
-    && echo ${DOH_VERSION_LATEST} > /dist/doh-server.version
+    && echo ${DOH_VERSION} > /dist/doh-server.version \
+    && go version -m /dist/doh-server | grep -q "m13253/dns-over-https"
 
-FROM ubuntu:22.04
-LABEL MAINTAINER=satish@satishweb.com
+FROM ubuntu:26.04
+LABEL MAINTAINER=satish@satishweb.com \
+      org.opencontainers.image.title="DNS Over HTTP Server" \
+      org.opencontainers.image.description="DNS over HTTPS server based on m13253/dns-over-https" \
+      org.opencontainers.image.source="https://github.com/satishweb/docker-doh" \
+      org.opencontainers.image.licenses="MIT"
+ARG DOH_VERSION
+LABEL org.opencontainers.image.version="${DOH_VERSION}"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 COPY --from=doh-build /dist /server
 COPY doh-server.sample.conf /server/doh-server.sample.conf
 
-# Install required packages by docker-entrypoint
+# Install required packages by docker-entrypoint.
+# wget is needed by the HEALTHCHECK, it is not part of the ubuntu base image.
 RUN apt-get update && apt-get -y install \
       bash \
       gettext \
+      wget \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    /var/cache/apt/archives/*deb
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*.deb
 
 # Add docker entrypoint and make it executable
 ADD docker-entrypoint /docker-entrypoint
@@ -58,10 +89,16 @@ USER nobody
 # Here is the list of addresses: https://use.opendns.com/
 ENV UPSTREAM_DNS_SERVER="udp:208.67.222.222:53,udp:208.67.220.220:53"
 ENV DOH_HTTP_PREFIX="/getnsrecord"
+# Additional paths the resolve endpoint is served on.
+# /dns-query is the RFC 8484 standard path used by browsers and cloudflared.
+ENV DOH_HTTP_PREFIXES="/dns-query"
 ENV DOH_SERVER_LISTEN=":8053"
 ENV DOH_SERVER_TIMEOUT="10"
 ENV DOH_SERVER_TRIES="3"
 ENV DOH_SERVER_VERBOSE="false"
+ENV DOH_SERVER_LOG_GUESSED_CLIENT_IP="false"
+ENV DOH_SERVER_ECS_ALLOW_NON_GLOBAL_IP="false"
+ENV DOH_SERVER_ECS_USE_PRECISE_IP="false"
 
 EXPOSE 8053
 
@@ -69,4 +106,9 @@ ENTRYPOINT ["/docker-entrypoint"]
 CMD [ "/server/doh-server", "-conf", "/server/doh-server.conf" ]
 
 # Healthcheck
-HEALTHCHECK --interval=1m --timeout=30s --start-period=1m CMD wget "localhost:$(echo ${DOH_SERVER_LISTEN}|awk -F '[:]' '{print $2}')$(echo ${DOH_HTTP_PREFIX})?name=google.com&type=A" -O /dev/null || exit 1
+# Any HTTP response from the local server proves that it is up and serving.
+# A 503 is accepted as well because it means the server is running but the
+# upstream resolver could not be reached - that is not a reason to restart
+# the container.
+HEALTHCHECK --interval=1m --timeout=30s --start-period=1m --retries=3 \
+    CMD wget --tries=1 --timeout=10 -S -O /dev/null "http://localhost:$(echo ${DOH_SERVER_LISTEN}|awk -F '[:]' '{print $2}')${DOH_HTTP_PREFIX}?name=healthcheck.example&type=A" 2>&1 | grep -qE "HTTP/1\.[01] (200|503)" || exit 1

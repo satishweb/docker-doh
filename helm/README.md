@@ -6,58 +6,82 @@ This [Helm](https://github.com/kubernetes/helm) chart installs [docker-doh](http
 
 ## Prerequisites
 
-- Kubernetes cluster 1.10+
-- Helm 2.8.0+
+- Kubernetes cluster 1.19+
+- Helm 3.0.0+
 
 ## Installation
 
 ### Package the chart
 
 ```bash
-helm package --version 2.2.2 --app-version 2.2.2 --destination . doh-server
+helm package --version 2.3.10 --app-version v2.3.10 --destination . doh-server
 ```
 
 ### Configure the chart
 
-The following items can be set via `--set` flag during installation or configured by editing the `values.yaml` directly(need to download the chart first).
+The following items can be set via `--set` flag during installation or configured by editing the `values.yaml` directly (need to download the chart first).
 
 #### Configure doh-server
 
-For enable ingress, the ingress controller must be installed in the Kubernetes cluster and a tls secret should be create.
-The following table lists the configurable parameters of the Harbor chart and the default values.
+For enabling ingress, the ingress controller must be installed in the Kubernetes cluster and a tls secret should be created.
 
-| Parameter                                                                   | Description                                                                                                                                                                                                                                                                                                                                     | Default                         |
-| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| **env**                                                                  |
-| `env.DEBUG` | Disblable (0) or Enable (1) DEBUG | 0 |
-| `env.UPSTREAM_DNS_SERVER` | The upstream DNS server | udp:8.8.8.8:53 |
+The following table lists the configurable parameters of the chart and the default values.
+
+| Parameter | Description | Default |
+| --- | --- | --- |
+| **env** | | |
+| `env.DEBUG` | Disable (0) or enable (1) DEBUG | 0 |
+| `env.UPSTREAM_DNS_SERVER` | The upstream DNS server(s), comma separated | udp:8.8.8.8:53 |
+| `env.DOH_HTTP_PREFIX` | The primary HTTP path of the resolve endpoint | /dns-query |
+| `env.DOH_HTTP_PREFIXES` | Additional HTTP paths the resolve endpoint is served on, comma separated | /getnsrecord |
+| `env.DOH_SERVER_LISTEN` | The listen address of the HTTP server | :8053 |
 | `env.DOH_SERVER_TIMEOUT` | Timeout to upstream DNS server | 10 |
-| `env.DOH_SERVER_TRIES` | DNS Request retry  | 3 |
-| `env.DOH_SERVER_VERBOSE` | Disblable (false) or Enable (true) verbose server | false |
-| **ingress**                                                                  |
-| `ingress.enabled` | Disblable (false) or Enable (true) the ingress | false |
-| `ingress.domainName` | The domain name that should be use to expose ingress | doh.your-domain.com |
-| `ingress.annotations` | Nginx Ingress annotations |  |
+| `env.DOH_SERVER_TRIES` | DNS Request retry | 3 |
+| `env.DOH_SERVER_VERBOSE` | Disable (false) or enable (true) verbose server | false |
+| `env.DOH_SERVER_LOG_GUESSED_CLIENT_IP` | Log the client IP from the reverse proxy headers | false |
+| `env.DOH_SERVER_ECS_ALLOW_NON_GLOBAL_IP` | Allow EDNS Client Subnet for private client IPs | false |
+| `env.DOH_SERVER_ECS_USE_PRECISE_IP` | Use the full client IP for EDNS Client Subnet | false |
+| **service** | | |
+| `service.type` | The service type | ClusterIP |
+| `service.port` | The service port | 80 |
+| `service.annotations` | Service annotations | |
+| **ingress** | | |
+| `ingress.enabled` | Disable (false) or enable (true) the ingress | false |
+| `ingress.className` | The ingress class | nginx |
+| `ingress.domainName` | The domain name that should be used to expose the ingress | doh.your-domain.com |
+| `ingress.annotations` | Ingress annotations | |
+| `ingress.nginxAnnotations` | Nginx specific annotations, only applied when `ingress.className` is `nginx` | |
+| `ingress.pathType` | The ingress path type | Prefix |
+| **probes** | | |
+| `probesQuery` | The query used by the liveness and readiness probes | name=google.com&type=A |
+| `probesPath` | The path used by the liveness and readiness probes. Defaults to `env.DOH_HTTP_PREFIX` when empty | |
+| **image** | | |
+| `image.repository` | The image repository | satishweb/doh-server |
+| `image.tag` | The image tag | latest |
+| `image.pullPolicy` | The image pull policy | IfNotPresent |
 
 ### Install the chart
 
-Exemple install the doh-server helm chart with a release name `my-release`:
+Example install of the doh-server helm chart with a release name `my-release`:
 
-helm 2:
 ```bash
-helm install --name my-release \
---set env.UPSTREAM_DNS_SERVER="udp:8.8.8.4:53" \
---set ingress.enabled=true \
---set ingress.domainName=doh.my-domain.com \
-./doh-server-2.2.2.tgz
+helm install my-release \
+  --set env.UPSTREAM_DNS_SERVER="udp:8.8.8.4:53" \
+  --set ingress.enabled=true \
+  --set ingress.domainName=doh.my-domain.com \
+  ./doh-server-2.3.10.tgz
+```
 
+Or straight from the chart directory:
+
+```bash
+helm install my-release ./doh-server
 ```
 
 ## Uninstallation
 
 To uninstall/delete the `my-release` deployment:
 
-helm 2:
 ```bash
-helm delete --purge my-release
+helm delete my-release
 ```
