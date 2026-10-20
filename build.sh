@@ -1,6 +1,9 @@
 #!/bin/bash
 # Author: Satish Gaikwad <satish@satishweb.com>
 
+# Build the provenance attestation, set PROVENANCE=false to turn it off.
+PROVENANCE=${PROVENANCE:-true}
+
 ## Functions
 __usage() {
   if [[ "$1" != "" ]]; then
@@ -127,8 +130,12 @@ __dockerBuild(){
 
   tagParams=""
   for i in $2; do tagParams+=" -t $1:$i"; done
+  # The provenance attestation records how and where the image was built.
+  # It can be turned off with PROVENANCE=false.
+  provenanceArg=""
+  if [ "${PROVENANCE}" = "true" ]; then provenanceArg="--provenance=true"; fi
   # The build context is the work dir, not the current working directory.
-  eval "$dockerBuildxCmd build --platform \"$3\" $5 $tagParams -f \"$4/$dockerFile\" \"$4\""
+  eval "$dockerBuildxCmd build --platform \"$3\" $5 $tagParams $provenanceArg -f \"$4/$dockerFile\" \"$4\""
   __errCheck "$?" "Docker Build failed"
 }
 
