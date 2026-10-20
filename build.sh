@@ -155,9 +155,15 @@ __checkSource() {
 __setupDocker() {
   # Lets prepare docker image
   if [[ "$imgPush" == "yes" ]]; then
-    echo "INFO: Logging in to Docker HUB... (Interactive Mode)"
-    docker login 2>&1 | sed 's/^/INFO: DOCKER: /g'
-    __errCheck "$?" "Docker login failed..."
+    # Skip the login when the registry credentials are already available.
+    # An interactive login is not possible in a non interactive shell.
+    if docker info 2>/dev/null | grep -qE "^[[:space:]]*Username:"; then
+      echo "INFO: Already logged in to the Docker registry, skipping the login."
+    else
+      echo "INFO: Logging in to Docker HUB... (Interactive Mode)"
+      docker login 2>&1 | sed 's/^/INFO: DOCKER: /g'
+      __errCheck "$?" "Docker login failed..."
+    fi
     extraDockerArgs+=" --push"
   fi
 }
