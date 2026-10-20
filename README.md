@@ -17,8 +17,8 @@ argument and defaults to **v2.3.10**.
 - Support for Docker / Swarm secrets
 - Support for a custom configuration file
 - Compatible with below architectures:
-  - Alpine: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6,linux/ppc64le,linux/s390x,linux/386,linux/riscv64
-  - Ubuntu: linux/amd64,linux/arm64,linux/arm/v7,linux/ppc64le,linux/s390x
+  - Alpine: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6,linux/ppc64le,linux/s390x,linux/386
+  - Ubuntu: linux/amd64,linux/arm/v7
 - Alpine based tiny images; Ubuntu based image also available
 - Comprehensive DOH Server setup example using Docker Compose
 
