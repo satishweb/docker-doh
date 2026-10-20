@@ -11,4 +11,4 @@ set -e
 
 # Launch app
 echo "| ENTRYPOINT: Lauching app..."
-exec $@
+exec "$@"
