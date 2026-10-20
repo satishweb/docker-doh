@@ -24,8 +24,15 @@ WORKDIR /src
 COPY patches/multiple-paths.patch /tmp/multiple-paths.patch
 
 # Lets download the requested version of DOH
+# The canonical Go module proxy is used when it is reachable. Some networks
+# block proxy.golang.org, in that case the modules are fetched directly from
+# the source repositories instead.
 ENV GOPROXY=https://proxy.golang.org,direct
 RUN set -x ;\
+    if ! curl -fsS --max-time 20 "https://proxy.golang.org/github.com/miekg/dns/@v/list" >/dev/null 2>&1; then \
+      echo "proxy.golang.org is not reachable, fetching the modules directly"; \
+      export GOPROXY="direct"; \
+    fi ;\
     curl -fL "https://github.com/m13253/dns-over-https/archive/${DOH_VERSION}.zip" -o doh.zip \
     && unzip doh.zip \
     && rm doh.zip \
