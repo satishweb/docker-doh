@@ -49,7 +49,8 @@ substituted into `/server/doh-server.sample.conf` to generate
 | Variable | Default | Description |
 | --- | --- | --- |
 | `UPSTREAM_DNS_SERVER` | `udp:208.67.222.222:53,udp:208.67.220.220:53` | Upstream resolver(s), comma separated. Prefix is `udp`, `tcp` or `tcp-tls`. A random server is picked for every attempt. |
-| `DOH_HTTP_PREFIX` | `/getnsrecord` | HTTP path of the resolve endpoint. |
+| `DOH_HTTP_PREFIX` | `/getnsrecord` | Primary HTTP path of the resolve endpoint. |
+| `DOH_HTTP_PREFIXES` | `/dns-query` | Additional HTTP paths the resolve endpoint is served on, comma separated. |
 | `DOH_SERVER_LISTEN` | `:8053` | Listen address of the HTTP server. |
 | `DOH_SERVER_TIMEOUT` | `10` | Upstream timeout in seconds. |
 | `DOH_SERVER_TRIES` | `3` | Number of attempts per query. |
@@ -64,10 +65,28 @@ makes the container fail to start.
 
 ### The HTTP path
 
-The default path `/getnsrecord` is not the path that browsers and operating
-systems use by default. Chrome, Firefox, cloudflared and most other clients
-expect the RFC 8484 path `/dns-query`. Either set `DOH_HTTP_PREFIX=/dns-query`
-or configure the path on the client side.
+The resolve endpoint is served on **two paths by default**:
+
+| Path | Purpose |
+| --- | --- |
+| `/getnsrecord` | The historical path of this image. |
+| `/dns-query` | The RFC 8484 standard path. Chrome, Firefox, cloudflared and most other clients use it by default. |
+
+Both paths answer the exact same queries, so no client configuration is needed
+for browsers and operating systems. Use `DOH_HTTP_PREFIX` to change the primary
+path and `DOH_HTTP_PREFIXES` to change the additional ones:
+
+```bash
+docker run -itd --name doh-server \
+    -p 8053:8053 \
+    -e DOH_HTTP_PREFIX=/dns-query \
+    -e DOH_HTTP_PREFIXES="" \
+    satishweb/doh-server
+```
+
+Serving more than one path requires a small patch to the upstream server, see
+[`patches/multiple-paths.patch`](patches/multiple-paths.patch). The patch is
+applied during the build and the build fails when it does not apply.
 
 ### Custom configuration file
 
@@ -246,6 +265,12 @@ https://dns.example.com/getnsrecord
 
 ```bash
 curl -w '\n' 'https://dns.example.com/getnsrecord?name=google.com&type=A'
+```
+
+The endpoint is also available on the RFC 8484 standard path:
+
+```bash
+curl -w '\n' 'https://dns.example.com/dns-query?name=google.com&type=A'
 ```
 
 ## Common Issues and Debugging

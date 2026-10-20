@@ -8,9 +8,11 @@ FROM golang:1.27-alpine AS doh-build
 LABEL MAINTAINER=satish@satishweb.com
 ARG DOH_VERSION
 
-RUN apk add --no-cache git make jq curl unzip
+RUN apk add --no-cache git make jq curl unzip patch
 
 WORKDIR /src
+
+COPY patches/multiple-paths.patch /tmp/multiple-paths.patch
 
 # Lets download the requested version of DOH
 ENV GOPROXY=https://proxy.golang.org,direct
@@ -19,6 +21,7 @@ RUN set -x ;\
     && unzip doh.zip \
     && rm doh.zip \
     && cd dns-over-https* \
+    && patch -p1 --forward --batch < /tmp/multiple-paths.patch \
     && make doh-server/doh-server \
     && mkdir /dist \
     && cp doh-server/doh-server /dist/doh-server \
@@ -55,6 +58,9 @@ USER nobody
 # Here is the list of addresses: https://use.opendns.com/
 ENV UPSTREAM_DNS_SERVER="udp:208.67.222.222:53,udp:208.67.220.220:53"
 ENV DOH_HTTP_PREFIX="/getnsrecord"
+# Additional paths the resolve endpoint is served on.
+# /dns-query is the RFC 8484 standard path used by browsers and cloudflared.
+ENV DOH_HTTP_PREFIXES="/dns-query"
 ENV DOH_SERVER_LISTEN=":8053"
 ENV DOH_SERVER_TIMEOUT="10"
 ENV DOH_SERVER_TRIES="3"

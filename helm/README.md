@@ -32,7 +32,8 @@ The following table lists the configurable parameters of the chart and the defau
 | **env** | | |
 | `env.DEBUG` | Disable (0) or enable (1) DEBUG | 0 |
 | `env.UPSTREAM_DNS_SERVER` | The upstream DNS server(s), comma separated | udp:8.8.8.8:53 |
-| `env.DOH_HTTP_PREFIX` | The HTTP path of the resolve endpoint | /dns-query |
+| `env.DOH_HTTP_PREFIX` | The primary HTTP path of the resolve endpoint | /dns-query |
+| `env.DOH_HTTP_PREFIXES` | Additional HTTP paths the resolve endpoint is served on, comma separated | /getnsrecord |
 | `env.DOH_SERVER_LISTEN` | The listen address of the HTTP server | :8053 |
 | `env.DOH_SERVER_TIMEOUT` | Timeout to upstream DNS server | 10 |
 | `env.DOH_SERVER_TRIES` | DNS Request retry | 3 |

@@ -100,6 +100,10 @@ __applyDefaults() {
         __warn "DOH_HTTP_PREFIX is empty, using the image default."
         export DOH_HTTP_PREFIX="/getnsrecord"
     fi
+    if [ -z "${DOH_HTTP_PREFIXES}" ]; then
+        __warn "DOH_HTTP_PREFIXES is empty, using the image default."
+        export DOH_HTTP_PREFIXES="/dns-query"
+    fi
     if [ -z "${DOH_SERVER_LISTEN}" ]; then
         __warn "DOH_SERVER_LISTEN is empty, using the image default."
         export DOH_SERVER_LISTEN=":8053"
@@ -117,6 +121,45 @@ __applyDefaults() {
     DOH_SERVER_ECS_ALLOW_NON_GLOBAL_IP="$(__toBool "${DOH_SERVER_ECS_ALLOW_NON_GLOBAL_IP}")"
     export DOH_SERVER_ECS_USE_PRECISE_IP
     DOH_SERVER_ECS_USE_PRECISE_IP="$(__toBool "${DOH_SERVER_ECS_USE_PRECISE_IP}")"
+}
+
+# Build the list of HTTP paths the resolve endpoint is served on.
+# The upstream server registers every entry of the comma separated "path"
+# option on its HTTP mux, so the endpoint can be reachable under more than
+# one URL at the same time.
+__buildHttpPaths() {
+    local -a paths=()
+    local -a parts=()
+    local part trimmed out
+
+    IFS=',' read -r -a parts <<< "${DOH_HTTP_PREFIX},${DOH_HTTP_PREFIXES}"
+
+    for part in "${parts[@]}"; do
+        trimmed="$(printf '%s' "${part}" | tr -d '[:space:]')"
+        [ -z "${trimmed}" ] && continue
+        # A path has to start with a slash, otherwise the upstream server
+        # refuses to start.
+        case "${trimmed}" in
+            /*) ;;
+            *)
+                __error "Invalid HTTP path '${trimmed}'. A path must start with a slash, e.g. /dns-query"
+                exit 1
+                ;;
+        esac
+        paths+=("${trimmed}")
+    done
+
+    if [ ${#paths[@]} -eq 0 ]; then
+        __error "No HTTP path configured."
+        exit 1
+    fi
+
+    out="${paths[0]}"
+    for trimmed in "${paths[@]:1}"; do
+        out="${out},${trimmed}"
+    done
+
+    export doh_http_paths="${out}"
 }
 
 # Build the TOML "upstream" array out of the (optionally comma separated)
@@ -215,6 +258,7 @@ if __isTrue "${DEBUG}"; then
 fi
 
 __applyDefaults
+__buildHttpPaths
 __buildUpstreamArray
 __generateConfig
 

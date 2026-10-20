@@ -26,7 +26,7 @@ def install_dependencies():
         sys.exit(1)
 
 
-def run_tests(image_name, port, upstream_dns, prefix, timeout, tries, verbose):
+def run_tests(image_name, port, upstream_dns, prefix, prefixes, timeout, tries, verbose):
     install_dependencies()
 
     import docker
@@ -61,6 +61,28 @@ def run_tests(image_name, port, upstream_dns, prefix, timeout, tries, verbose):
             self.assertEqual(answers[0].get("type"), 1, f"Expected an A record: {payload}")
             print("Health check test passed.")
 
+        def test_additional_paths(self):
+            """The resolve endpoint has to be served on every configured path."""
+            for path in [p for p in prefixes.split(",") if p.strip()]:
+                path = path.strip()
+                print(f"Testing additional path {path}...")
+                response = requests.get(
+                    f"http://localhost:{port}{path}?name=google.com&type=A", timeout=30
+                )
+                self.assertEqual(response.status_code, 200, f"Unexpected status code for {path}")
+                payload = response.json()
+                self.assertEqual(payload.get("Status"), 0, f"DNS query failed on {path}: {payload}")
+                self.assertTrue(payload.get("Answer"), f"No answer returned on {path}: {payload}")
+            print("Additional path test passed.")
+
+        def test_unknown_path(self):
+            """A path that is not configured must not be served."""
+            response = requests.get(
+                f"http://localhost:{port}/this-path-does-not-exist?name=google.com", timeout=30
+            )
+            self.assertEqual(response.status_code, 404, "Unknown path should return 404")
+            print("Unknown path test passed.")
+
     def wait_for_container_health(container, timeout=HEALTH_TIMEOUT):
         print("Waiting for container to be healthy...")
         deadline = time.time() + timeout
@@ -93,6 +115,7 @@ def run_tests(image_name, port, upstream_dns, prefix, timeout, tries, verbose):
         environment={
             "UPSTREAM_DNS_SERVER": upstream_dns,
             "DOH_HTTP_PREFIX": prefix,
+            "DOH_HTTP_PREFIXES": prefixes,
             "DOH_SERVER_LISTEN": f":{port}",
             "DOH_SERVER_TIMEOUT": timeout,
             "DOH_SERVER_TRIES": tries,
@@ -125,10 +148,11 @@ if __name__ == "__main__":
     parser.add_argument("--image", type=str, default="satishweb/doh-server-test", help="Docker image name (default: satishweb/doh-server)")
     parser.add_argument("--port", type=str, default="8053", help="Port number for the Docker container (default: 8053)")
     parser.add_argument("--upstream_dns", type=str, default="udp:208.67.222.222:53", help="Upstream DNS server (default: udp:208.67.222.222:53)")
-    parser.add_argument("--prefix", type=str, default="/getnsrecord", help="HTTP prefix (default: /getnsrecord)")
+    parser.add_argument("--prefix", type=str, default="/getnsrecord", help="Primary HTTP prefix (default: /getnsrecord)")
+    parser.add_argument("--prefixes", type=str, default="/dns-query", help="Additional HTTP prefixes, comma separated (default: /dns-query)")
     parser.add_argument("--timeout", type=str, default="10", help="Timeout for DNS queries (default: 10)")
     parser.add_argument("--tries", type=str, default="3", help="Number of retries for failed DNS queries (default: 3)")
     parser.add_argument("--verbose", type=str, default="false", help="Verbose mode for the DoH server (default: false)")
     args = parser.parse_args()
 
-    run_tests(args.image, args.port, args.upstream_dns, args.prefix, args.timeout, args.tries, args.verbose)
+    run_tests(args.image, args.port, args.upstream_dns, args.prefix, args.prefixes, args.timeout, args.tries, args.verbose)

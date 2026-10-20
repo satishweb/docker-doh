@@ -72,6 +72,7 @@ services:
       # DEBUG: "1"
       UPSTREAM_DNS_SERVER: "udp:unbound:53"
       DOH_HTTP_PREFIX: "${DOH_HTTP_PREFIX}"
+      DOH_HTTP_PREFIXES: "${DOH_HTTP_PREFIXES}"
       DOH_SERVER_LISTEN: ":${DOH_SERVER_LISTEN}"
       DOH_SERVER_TIMEOUT: "10"
       DOH_SERVER_TRIES: "3"
@@ -87,7 +88,7 @@ services:
       - unbound
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.doh-server.rule=Host(`${SUBDOMAIN}.${DOMAIN}`) && Path(`${DOH_HTTP_PREFIX}`)"
+      - "traefik.http.routers.doh-server.rule=Host(`${SUBDOMAIN}.${DOMAIN}`) && (Path(`${DOH_HTTP_PREFIX}`) || Path(`${DOH_HTTP_PREFIXES}`))"
       - "traefik.http.services.doh-server.loadbalancer.server.port=${DOH_SERVER_LISTEN}"
       # Middlewares applied to the doh-server router.
       # The rate limit middleware protects the resolver against request floods.
