@@ -130,7 +130,7 @@ __applyDefaults() {
 __buildHttpPaths() {
     local -a paths=()
     local -a parts=()
-    local part trimmed out
+    local part trimmed out existing duplicate
 
     IFS=',' read -r -a parts <<< "${DOH_HTTP_PREFIX},${DOH_HTTP_PREFIXES}"
 
@@ -146,6 +146,20 @@ __buildHttpPaths() {
                 exit 1
                 ;;
         esac
+        # The same path must not be registered twice, the upstream server
+        # panics when it happens. That happens for example when the primary
+        # path is the same as one of the additional paths.
+        duplicate=0
+        for existing in "${paths[@]}"; do
+            if [ "${existing}" = "${trimmed}" ]; then
+                duplicate=1
+                break
+            fi
+        done
+        if [ ${duplicate} -eq 1 ]; then
+            __log "HTTP path '${trimmed}' is already configured, skipping it."
+            continue
+        fi
         paths+=("${trimmed}")
     done
 
