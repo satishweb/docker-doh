@@ -68,6 +68,41 @@ def wait_for_container_health(container, timeout=HEALTH_TIMEOUT):
         time.sleep(1)
 
 
+def wait_for_server(container, port, timeout=HEALTH_TIMEOUT):
+    """Wait until the server answers a query, without waiting for the health
+    status of the container which takes a minute because of the health check
+    interval."""
+    import requests
+
+    print(f"Waiting for the server on port {port}...")
+    deadline = time.time() + timeout
+    while True:
+        container.reload()
+        state = container.attrs.get("State", {})
+        if state.get("Status") in ("exited", "dead"):
+            logs = container.logs().decode("utf-8", errors="replace")
+            raise RuntimeError(
+                f"Container stopped before it answered (status={state.get('Status')}).\n{logs}"
+            )
+        try:
+            response = requests.get(
+                f"http://localhost:{port}/?name=healthcheck.example&type=A", timeout=5
+            )
+            # Any answer proves that the server is up, even a 404 for a path
+            # that is not configured.
+            if response.status_code:
+                print("The server answers.")
+                return
+        except requests.exceptions.RequestException:
+            pass
+        if time.time() > deadline:
+            logs = container.logs().decode("utf-8", errors="replace")
+            raise RuntimeError(
+                f"The server did not answer within {timeout}s.\n{logs}"
+            )
+        time.sleep(1)
+
+
 def run_tests(image_name, port, upstream_dns, prefix, prefixes, timeout, tries, verbose):
     install_dependencies()
 
@@ -192,7 +227,7 @@ def run_path_configuration_tests(client, image_name, upstream_dns, timeout, trie
                         },
                     )
                     try:
-                        wait_for_container_health(container)
+                        wait_for_server(container, case_port)
                         for path in expected:
                             response = requests.get(
                                 f"http://localhost:{case_port}{path}?name=google.com&type=A",
@@ -210,6 +245,14 @@ def run_path_configuration_tests(client, image_name, upstream_dns, timeout, trie
                         )
                         self.assertEqual(
                             response.status_code, 404, f"unknown path was served: {name}"
+                        )
+                        # The health check has to succeed for the container as
+                        # well. The script is run directly, waiting for the
+                        # health status of the container would take a minute
+                        # for every case.
+                        exit_code = container.exec_run("/docker-healthcheck").exit_code
+                        self.assertEqual(
+                            exit_code, 0, f"the health check failed: {name}"
                         )
                     finally:
                         container.stop()
