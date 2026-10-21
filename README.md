@@ -64,6 +64,7 @@ substituted into `/server/doh-server.sample.conf` to generate
 | `DOH_SERVER_TLS_CLIENT_AUTH` | `false` | Require the clients to present a certificate. |
 | `DOH_SERVER_TLS_CLIENT_AUTH_CA` | empty | Path to the certificate authority that signs the certificates of the clients. Required when `DOH_SERVER_TLS_CLIENT_AUTH` is enabled. |
 | `DEBUG` | `0` | Set to `1` to trace the entrypoint script. |
+| `DOH_CONFIG_FILE` | `/server/doh-server.conf` | Path of the configuration file. It is generated from the template when it does not exist. |
 
 Empty values are replaced by the defaults above, so an unset variable never
 makes the container fail to start.
@@ -131,6 +132,21 @@ is used **as is**, no variable substitution is applied to it:
     volumes:
       - ./doh-server.conf:/server/doh-server.conf
 ```
+
+The path of the configuration file can be changed with `DOH_CONFIG_FILE`. That
+way the custom configuration can live in a directory of its own and is not
+replaced by the generated one:
+
+```bash
+docker run -itd --name doh-server \
+    -p 8053:8053 \
+    -v ./doh-server.conf:/server-custom/doh-server.conf:ro \
+    -e DOH_CONFIG_FILE=/server-custom/doh-server.conf \
+    satishweb/doh-server
+```
+
+When the file does not exist it is generated from the bundled template, so the
+variable works without a custom configuration as well.
 
 The supported options are defined by the upstream project, see
 [`doh-server/config.go`](https://github.com/m13253/dns-over-https/blob/master/doh-server/config.go).
