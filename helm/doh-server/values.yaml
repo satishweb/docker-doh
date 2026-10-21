@@ -25,6 +25,16 @@ env:
   DOH_SERVER_LOG_GUESSED_CLIENT_IP: "false"
   DOH_SERVER_ECS_ALLOW_NON_GLOBAL_IP: "false"
   DOH_SERVER_ECS_USE_PRECISE_IP: "false"
+  # Local address and port that is used for the queries to the upstream
+  # resolver. Empty lets the server choose one.
+  DOH_SERVER_LOCAL_ADDR: ""
+  # The TLS certificate and the key of the server. They have to be set
+  # together and the files have to be readable inside the container.
+  DOH_SERVER_CERT: ""
+  DOH_SERVER_KEY: ""
+  # Require the clients to present a certificate.
+  DOH_SERVER_TLS_CLIENT_AUTH: "false"
+  DOH_SERVER_TLS_CLIENT_AUTH_CA: ""
 
 containerPort: 8053
 
@@ -67,6 +77,10 @@ probesQuery: name=google.com&type=A
 # Path used by the liveness and readiness probes.
 # Defaults to env.DOH_HTTP_PREFIX when left empty.
 probesPath: ""
+# Scheme of the liveness and readiness probes. It has to be HTTPS when the
+# server runs with TLS, that is when env.DOH_SERVER_CERT and
+# env.DOH_SERVER_KEY are set.
+probesScheme: HTTP
 
 podSecurityContext:
   runAsNonRoot: true

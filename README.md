@@ -58,10 +58,41 @@ substituted into `/server/doh-server.sample.conf` to generate
 | `DOH_SERVER_LOG_GUESSED_CLIENT_IP` | `false` | Log the client IP taken from `X-Forwarded-For` / `X-Real-IP`. |
 | `DOH_SERVER_ECS_ALLOW_NON_GLOBAL_IP` | `false` | Allow EDNS Client Subnet for non global (private) client IPs. |
 | `DOH_SERVER_ECS_USE_PRECISE_IP` | `false` | Use the full client IP for EDNS Client Subnet instead of a /24 or /56 mask. |
+| `DOH_SERVER_LOCAL_ADDR` | empty | Local address and port that is used for the queries to the upstream resolver. Empty lets the server choose one. |
+| `DOH_SERVER_CERT` | empty | Path to the TLS certificate of the server. Has to be set together with `DOH_SERVER_KEY`. |
+| `DOH_SERVER_KEY` | empty | Path to the TLS private key of the server. Has to be set together with `DOH_SERVER_CERT`. |
+| `DOH_SERVER_TLS_CLIENT_AUTH` | `false` | Require the clients to present a certificate. |
+| `DOH_SERVER_TLS_CLIENT_AUTH_CA` | empty | Path to the certificate authority that signs the certificates of the clients. Required when `DOH_SERVER_TLS_CLIENT_AUTH` is enabled. |
 | `DEBUG` | `0` | Set to `1` to trace the entrypoint script. |
 
 Empty values are replaced by the defaults above, so an unset variable never
 makes the container fail to start.
+
+### TLS
+
+The server can serve HTTPS itself, but it is recommended to put a reverse
+proxy in front of it, because the server does not do OCSP stapling and does
+not reload a certificate that changed on disk.
+
+```bash
+docker run -itd --name doh-server \
+    -p 8053:8053 \
+    -v /path/to/certs:/certs:ro \
+    -e DOH_SERVER_CERT=/certs/server.crt \
+    -e DOH_SERVER_KEY=/certs/server.key \
+    satishweb/doh-server
+```
+
+The certificate and the key have to be set together, the container refuses to
+start when only one of them is given. The health check switches to https on
+its own when the server runs with TLS.
+
+The clients can be required to present a certificate as well:
+
+```bash
+    -e DOH_SERVER_TLS_CLIENT_AUTH=true \
+    -e DOH_SERVER_TLS_CLIENT_AUTH_CA=/certs/ca.crt \
+```
 
 ### The HTTP path
 

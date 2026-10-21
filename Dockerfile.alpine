@@ -93,6 +93,12 @@ ENV DOH_SERVER_VERBOSE="false"
 ENV DOH_SERVER_LOG_GUESSED_CLIENT_IP="false"
 ENV DOH_SERVER_ECS_ALLOW_NON_GLOBAL_IP="false"
 ENV DOH_SERVER_ECS_USE_PRECISE_IP="false"
+ENV DOH_SERVER_LOCAL_ADDR=""
+# DOH_SERVER_CERT, DOH_SERVER_KEY, DOH_SERVER_TLS_CLIENT_AUTH and
+# DOH_SERVER_TLS_CLIENT_AUTH_CA are not declared here. They carry paths and
+# flags, not secrets, but a name that holds a key or an auth is reported by
+# the build check for secrets in the environment. They default to empty and
+# false in the entrypoint.
 
 EXPOSE 8053
 

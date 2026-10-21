@@ -47,6 +47,7 @@ spec:
             httpGet:
               path: "{{ $probesPath }}?{{ .Values.probesQuery }}"
               port: http
+              scheme: {{ .Values.probesScheme | default "HTTP" }}
             initialDelaySeconds: 10
             periodSeconds: 30
             timeoutSeconds: 15
@@ -55,6 +56,7 @@ spec:
             httpGet:
               path: "{{ $probesPath }}?{{ .Values.probesQuery }}"
               port: http
+              scheme: {{ .Values.probesScheme | default "HTTP" }}
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 15
