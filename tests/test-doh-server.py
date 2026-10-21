@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import json
-import os
 import sys
 import time
 import unittest
@@ -24,6 +22,30 @@ def install_dependencies():
             file=sys.stderr,
         )
         sys.exit(1)
+
+
+def wait_for_container_health(container, timeout=HEALTH_TIMEOUT):
+    print("Waiting for container to be healthy...")
+    deadline = time.time() + timeout
+    while True:
+        container.reload()
+        state = container.attrs.get("State", {})
+        health = state.get("Health", {})
+        status = health.get("Status")
+        if status == "healthy":
+            print("Container is healthy.")
+            return
+        if state.get("Status") in ("exited", "dead"):
+            logs = container.logs().decode("utf-8", errors="replace")
+            raise RuntimeError(
+                f"Container stopped before it became healthy (status={state.get('Status')}).\n{logs}"
+            )
+        if time.time() > deadline:
+            logs = container.logs().decode("utf-8", errors="replace")
+            raise RuntimeError(
+                f"Container did not become healthy within {timeout}s (last status={status}).\n{logs}"
+            )
+        time.sleep(1)
 
 
 def run_tests(image_name, port, upstream_dns, prefix, prefixes, timeout, tries, verbose):
@@ -83,29 +105,6 @@ def run_tests(image_name, port, upstream_dns, prefix, prefixes, timeout, tries, 
             self.assertEqual(response.status_code, 404, "Unknown path should return 404")
             print("Unknown path test passed.")
 
-    def wait_for_container_health(container, timeout=HEALTH_TIMEOUT):
-        print("Waiting for container to be healthy...")
-        deadline = time.time() + timeout
-        while True:
-            container.reload()
-            state = container.attrs.get("State", {})
-            health = state.get("Health", {})
-            status = health.get("Status")
-            if status == "healthy":
-                print("Container is healthy.")
-                return
-            if state.get("Status") in ("exited", "dead"):
-                logs = container.logs().decode("utf-8", errors="replace")
-                raise RuntimeError(
-                    f"Container stopped before it became healthy (status={state.get('Status')}).\n{logs}"
-                )
-            if time.time() > deadline:
-                logs = container.logs().decode("utf-8", errors="replace")
-                raise RuntimeError(
-                    f"Container did not become healthy within {timeout}s (last status={status}).\n{logs}"
-                )
-            time.sleep(1)
-
     print(f"Starting Docker container using image '{image_name}' and port '{port}'...")
     client = docker.from_env()
     container = client.containers.run(
@@ -140,6 +139,47 @@ def run_tests(image_name, port, upstream_dns, prefix, prefixes, timeout, tries, 
         container.stop()
         container.remove()
         print("Docker container stopped and removed.")
+
+    # The same path must not be registered twice, the server panics when it
+    # happens. See https://github.com/satishweb/docker-doh/issues/40
+    run_duplicate_path_test(client, image_name, upstream_dns, prefix, timeout, tries, verbose)
+
+
+def run_duplicate_path_test(client, image_name, upstream_dns, prefix, timeout, tries, verbose):
+    """The primary path and the additional paths may be the same."""
+    import requests
+
+    port = 8053
+    print(f"\nRunning duplicate path test with '{prefix}' as primary and additional path...")
+    container = client.containers.run(
+        image_name,
+        detach=True,
+        ports={f"{port}": f"{port}"},
+        environment={
+            "UPSTREAM_DNS_SERVER": upstream_dns,
+            "DOH_HTTP_PREFIX": prefix,
+            "DOH_HTTP_PREFIXES": prefix,
+            "DOH_SERVER_LISTEN": f":{port}",
+            "DOH_SERVER_TIMEOUT": timeout,
+            "DOH_SERVER_TRIES": tries,
+            "DOH_SERVER_VERBOSE": verbose,
+        },
+    )
+    try:
+        wait_for_container_health(container)
+        response = requests.get(
+            f"http://localhost:{port}{prefix}?name=google.com&type=A", timeout=30
+        )
+        if response.status_code != 200:
+            print(f"FAIL: duplicate path test returned {response.status_code}")
+            sys.exit(1)
+        if response.json().get("Status") != 0:
+            print(f"FAIL: duplicate path test returned {response.json()}")
+            sys.exit(1)
+        print("Duplicate path test passed.")
+    finally:
+        container.stop()
+        container.remove()
 
 
 if __name__ == "__main__":

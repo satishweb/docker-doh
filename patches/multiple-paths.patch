@@ -6,19 +6,30 @@ DoH endpoint is only reachable under a single URL.  This patch splits the
 possible to serve the endpoint on the RFC 8484 standard path (/dns-query) as
 well as on the legacy path (/getnsrecord) at the same time.
 
+Registering the same path twice makes the Go HTTP mux panic, so a path that
+is already registered is skipped.  Without that check a configuration like
+path = "/dns-query,/dns-query" would stop the server from starting.
+
 The patch is applied by the Docker build.  The build fails when the patch does
 not apply, so an upstream release that changed this code will not silently
 produce an image with a single path.
 
 --- a/doh-server/server.go
 +++ b/doh-server/server.go
-@@ -101,7 +101,10 @@
+@@ -101,7 +101,17 @@
  			LocalAddr: tcpLocalAddr,
  		}
  	}
 -	s.servemux.HandleFunc(conf.Path, s.handlerFunc)
 +	// Multiple paths can be configured as a comma separated list.
++	// A path that is already registered is skipped, registering the same
++	// path twice makes the server panic.
++	registeredPaths := make(map[string]bool)
 +	for _, path := range strings.Split(conf.Path, ",") {
++		if path == "" || registeredPaths[path] {
++			continue
++		}
++		registeredPaths[path] = true
 +		s.servemux.HandleFunc(path, s.handlerFunc)
 +	}
  	return s, nil
