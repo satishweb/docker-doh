@@ -87,6 +87,9 @@ The certificate and the key have to be set together, the container refuses to
 start when only one of them is given. The health check switches to https on
 its own when the server runs with TLS.
 
+The files have to be readable for the unprivileged user of the container, so
+give them the mode 0644 and the directory the mode 0755.
+
 The clients can be required to present a certificate as well:
 
 ```bash

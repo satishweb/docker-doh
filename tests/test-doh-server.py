@@ -220,6 +220,9 @@ def run_tls_test(client, image_name, upstream_dns, timeout, tries, verbose):
     cert_dir = os.path.realpath(tempfile.mkdtemp(prefix="doh-tls-", dir=cache_dir))
     cert = os.path.join(cert_dir, "server.crt")
     key = os.path.join(cert_dir, "server.key")
+    # The server runs as the unprivileged user of the container, so the
+    # certificate and the key have to be readable for it.
+    os.chmod(cert_dir, 0o755)
     subprocess.run(
         [
             "openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes",
@@ -228,6 +231,8 @@ def run_tls_test(client, image_name, upstream_dns, timeout, tries, verbose):
         check=True,
         capture_output=True,
     )
+    os.chmod(cert, 0o644)
+    os.chmod(key, 0o644)
 
     port = 18150
     print("\nRunning the TLS test...")
