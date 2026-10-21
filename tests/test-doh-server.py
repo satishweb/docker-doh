@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
 import sys
 import time
 import unittest
@@ -196,6 +197,82 @@ def run_tests(image_name, port, upstream_dns, prefix, prefixes, timeout, tries, 
         print("Docker container stopped and removed.")
 
     run_path_configuration_tests(client, image_name, upstream_dns, timeout, tries, verbose)
+    run_tls_test(client, image_name, upstream_dns, timeout, tries, verbose)
+
+
+def run_tls_test(client, image_name, upstream_dns, timeout, tries, verbose):
+    """The server has to serve https when it is configured with a certificate
+    and a key, and the health check has to use https as well."""
+    import requests
+    import shutil
+    import subprocess
+    import tempfile
+
+    if shutil.which("openssl") is None:
+        print("\nSkipping the TLS test, openssl is not available.")
+        return
+
+    # The certificates are created in the cache directory of the user. The
+    # temporary directory of the operating system can not be mounted, it is
+    # not shared with the docker daemon.
+    cache_dir = os.path.join(os.path.expanduser("~"), ".cache")
+    os.makedirs(cache_dir, exist_ok=True)
+    cert_dir = os.path.realpath(tempfile.mkdtemp(prefix="doh-tls-", dir=cache_dir))
+    cert = os.path.join(cert_dir, "server.crt")
+    key = os.path.join(cert_dir, "server.key")
+    # The server runs as the unprivileged user of the container, so the
+    # certificate and the key have to be readable for it.
+    os.chmod(cert_dir, 0o755)
+    subprocess.run(
+        [
+            "openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes",
+            "-keyout", key, "-out", cert, "-days", "1", "-subj", "/CN=doh.test",
+        ],
+        check=True,
+        capture_output=True,
+    )
+    os.chmod(cert, 0o644)
+    os.chmod(key, 0o644)
+
+    port = 18150
+    print("\nRunning the TLS test...")
+    container = client.containers.run(
+        image_name,
+        detach=True,
+        ports={f"{port}": f"{port}"},
+        environment={
+            "UPSTREAM_DNS_SERVER": upstream_dns,
+            "DOH_HTTP_PREFIX": "/getnsrecord",
+            "DOH_HTTP_PREFIXES": "/dns-query",
+            "DOH_SERVER_LISTEN": f":{port}",
+            "DOH_SERVER_TIMEOUT": timeout,
+            "DOH_SERVER_TRIES": tries,
+            "DOH_SERVER_VERBOSE": verbose,
+            "DOH_SERVER_CERT": "/certs/server.crt",
+            "DOH_SERVER_KEY": "/certs/server.key",
+        },
+        volumes={cert_dir: {"bind": "/certs", "mode": "ro"}},
+    )
+    try:
+        wait_for_server(container, port)
+        response = requests.get(
+            f"https://localhost:{port}/getnsrecord?name=google.com&type=A",
+            timeout=30,
+            verify=False,
+        )
+        if response.status_code != 200 or response.json().get("Status") != 0:
+            print(f"FAIL: the TLS test returned {response.status_code} {response.text[:120]}")
+            sys.exit(1)
+        # The health check has to use https as well.
+        exit_code = container.exec_run("/docker-healthcheck").exit_code
+        if exit_code != 0:
+            print("FAIL: the health check did not pass with TLS enabled")
+            sys.exit(1)
+        print("TLS test passed.")
+    finally:
+        container.stop()
+        container.remove()
+        shutil.rmtree(cert_dir, ignore_errors=True)
 
 
 def run_path_configuration_tests(client, image_name, upstream_dns, timeout, tries, verbose):

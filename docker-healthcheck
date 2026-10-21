@@ -9,6 +9,9 @@
 # listed more than once is served only once, the first entry of the list is
 # the one that is used.
 #
+# When the server runs with TLS the check uses https, the certificate of the
+# server is self signed in most setups so it is not verified.
+#
 # Exit code 0 means healthy.
 
 CONFIG_FILE=/server/doh-server.conf
@@ -20,11 +23,23 @@ port=$(echo "${DOH_SERVER_LISTEN:-:8053}" | awk -F '[:]' '{print $2}')
 # The primary path, it is the first entry of the comma separated path list.
 path=$(sed -n 's/^path[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "${CONFIG_FILE}" 2>/dev/null | cut -d, -f1)
 
+# The server serves TLS when it has a certificate and a key.
+cert=$(sed -n 's/^cert[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "${CONFIG_FILE}" 2>/dev/null)
+key=$(sed -n 's/^key[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "${CONFIG_FILE}" 2>/dev/null)
+
+scheme=http
+wgetOptions=""
+if [ -n "${cert}" ] && [ -n "${key}" ]; then
+    scheme=https
+    wgetOptions="--no-check-certificate"
+fi
+
 if [ -z "${path}" ]; then
     # The configuration could not be read, so the path is unknown. Any
     # answer from the server proves that it is running.
-    wget --tries=1 --timeout=10 -S -O /dev/null \
-        "http://localhost:${port}/?name=healthcheck.example&type=A" 2>&1 \
+    # shellcheck disable=SC2086
+    wget --tries=1 --timeout=10 ${wgetOptions} -S -O /dev/null \
+        "${scheme}://localhost:${port}/?name=healthcheck.example&type=A" 2>&1 \
         | grep -qE "HTTP/1\.[01] [0-9]{3}"
     exit $?
 fi
@@ -32,7 +47,8 @@ fi
 # A 503 is accepted as well, it means the server is running but the upstream
 # resolver could not be reached, which is not a reason to restart the
 # container.
-wget --tries=1 --timeout=10 -S -O /dev/null \
-    "http://localhost:${port}${path}?name=healthcheck.example&type=A" 2>&1 \
+# shellcheck disable=SC2086
+wget --tries=1 --timeout=10 ${wgetOptions} -S -O /dev/null \
+    "${scheme}://localhost:${port}${path}?name=healthcheck.example&type=A" 2>&1 \
     | grep -qE "HTTP/1\.[01] (200|503)"
 exit $?

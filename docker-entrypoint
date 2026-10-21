@@ -121,6 +121,23 @@ __applyDefaults() {
     DOH_SERVER_ECS_ALLOW_NON_GLOBAL_IP="$(__toBool "${DOH_SERVER_ECS_ALLOW_NON_GLOBAL_IP}")"
     export DOH_SERVER_ECS_USE_PRECISE_IP
     DOH_SERVER_ECS_USE_PRECISE_IP="$(__toBool "${DOH_SERVER_ECS_USE_PRECISE_IP}")"
+    export DOH_SERVER_TLS_CLIENT_AUTH
+    DOH_SERVER_TLS_CLIENT_AUTH="$(__toBool "${DOH_SERVER_TLS_CLIENT_AUTH}")"
+
+    # The upstream server refuses to start when only one of the certificate
+    # and the key is set, so the check is done here to give a clear message.
+    if [ -n "${DOH_SERVER_CERT}" ] && [ -z "${DOH_SERVER_KEY}" ]; then
+        __error "DOH_SERVER_KEY is missing. The certificate and the key have to be set together."
+        exit 1
+    fi
+    if [ -z "${DOH_SERVER_CERT}" ] && [ -n "${DOH_SERVER_KEY}" ]; then
+        __error "DOH_SERVER_CERT is missing. The certificate and the key have to be set together."
+        exit 1
+    fi
+    if [ "${DOH_SERVER_TLS_CLIENT_AUTH}" = "true" ] && [ -z "${DOH_SERVER_TLS_CLIENT_AUTH_CA}" ]; then
+        __error "DOH_SERVER_TLS_CLIENT_AUTH_CA is missing. It is required when the client authentication is enabled."
+        exit 1
+    fi
 }
 
 # Build the list of HTTP paths the resolve endpoint is served on.
