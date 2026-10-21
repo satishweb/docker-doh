@@ -66,6 +66,12 @@ RUN apk add --no-cache bash gettext
 ADD docker-entrypoint /docker-entrypoint
 RUN chmod u+x /docker-entrypoint
 
+# Add docker healthcheck and make it executable
+COPY docker-healthcheck /docker-healthcheck
+# The health check runs as the unprivileged user of the container, so it has to
+# be executable for everybody and not only for the owner.
+RUN chmod 0755 /docker-healthcheck
+
 # Change owner of the server folder
 RUN chown -R nobody:nogroup /server
 
@@ -94,9 +100,7 @@ ENTRYPOINT ["/docker-entrypoint"]
 CMD [ "/server/doh-server", "-conf", "/server/doh-server.conf" ]
 
 # Healthcheck
-# Any HTTP response from the local server proves that it is up and serving.
-# A 503 is accepted as well because it means the server is running but the
-# upstream resolver could not be reached - that is not a reason to restart
-# the container.
+# The check reads the path from the configuration file that is in use, so it
+# stays correct for every path configuration.
 HEALTHCHECK --interval=1m --timeout=30s --start-period=1m --retries=3 \
-    CMD wget --tries=1 --timeout=10 -S -O /dev/null "http://localhost:$(echo ${DOH_SERVER_LISTEN}|awk -F '[:]' '{print $2}')${DOH_HTTP_PREFIX}?name=healthcheck.example&type=A" 2>&1 | grep -qE "HTTP/1\.[01] (200|503)" || exit 1
+    CMD /docker-healthcheck

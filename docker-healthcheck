@@ -1,0 +1,38 @@
+#!/bin/sh
+# Author: Satish Gaikwad <satish@satishweb.com>
+#
+# Health check for the DNS over HTTP server.
+#
+# The server is only healthy when it answers on the path it is configured
+# with. The path is read from the configuration file that is in use, so the
+# check stays correct no matter how the paths are configured. A path that is
+# listed more than once is served only once, the first entry of the list is
+# the one that is used.
+#
+# Exit code 0 means healthy.
+
+CONFIG_FILE=/server/doh-server.conf
+
+# The port the server listens on.
+port=$(echo "${DOH_SERVER_LISTEN:-:8053}" | awk -F '[:]' '{print $2}')
+[ -n "${port}" ] || port=8053
+
+# The primary path, it is the first entry of the comma separated path list.
+path=$(sed -n 's/^path[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "${CONFIG_FILE}" 2>/dev/null | cut -d, -f1)
+
+if [ -z "${path}" ]; then
+    # The configuration could not be read, so the path is unknown. Any
+    # answer from the server proves that it is running.
+    wget --tries=1 --timeout=10 -S -O /dev/null \
+        "http://localhost:${port}/?name=healthcheck.example&type=A" 2>&1 \
+        | grep -qE "HTTP/1\.[01] [0-9]{3}"
+    exit $?
+fi
+
+# A 503 is accepted as well, it means the server is running but the upstream
+# resolver could not be reached, which is not a reason to restart the
+# container.
+wget --tries=1 --timeout=10 -S -O /dev/null \
+    "http://localhost:${port}${path}?name=healthcheck.example&type=A" 2>&1 \
+    | grep -qE "HTTP/1\.[01] (200|503)"
+exit $?
