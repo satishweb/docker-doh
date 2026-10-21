@@ -45,6 +45,7 @@ The following table lists the configurable parameters of the chart and the defau
 | `service.type` | The service type | ClusterIP |
 | `service.port` | The service port | 80 |
 | `service.annotations` | Service annotations | |
+| `deploymentAnnotations` | Annotations for the deployment | |
 | **ingress** | | |
 | `ingress.enabled` | Disable (false) or enable (true) the ingress | false |
 | `ingress.className` | The ingress class | nginx |
