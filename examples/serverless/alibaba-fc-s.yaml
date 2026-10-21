@@ -1,0 +1,68 @@
+edition: 1.0.0
+name: fc-DoH
+access: default
+
+# Serverless Devs template for the DNS over HTTP server.
+#
+# It deploys the container image as an Alibaba Cloud Function Compute custom
+# container. The image has to be in a registry that the function can pull
+# from, build it with the release workflow and put the result in the
+# customContainerConfig below.
+#
+# Deploy it with the Serverless Devs command line tool:
+#
+#   s deploy -t ./alibaba-fc-s.yaml
+#
+# More about the template format:
+#   https://www.serverless-devs.com/serverless-devs/yaml
+
+vars:
+  region: cn-hongkong
+  service:
+    name: fc-DoH
+    description: 'Dns Over HTTPS'
+    logConfig: auto
+  triggers:
+    - name: http_t
+      type: http
+      config:
+        authType: anonymous
+        methods:
+          - GET
+          - POST
+
+services:
+  fc-DoH:
+    component: fc
+    actions:
+      pre-deploy:
+        - component: fc build --use-docker --dockerfile ./Dockerfile
+    props:
+      region: ${vars.region}
+      service: ${vars.service}
+      function:
+        name: doh
+        description: 'Dns Over Https handler'
+        # The port the server listens on inside the container.
+        caPort: 8053
+        memorySize: 128
+        timeout: 5
+        runtime: custom-container
+        customContainerConfig:
+          # The image that is deployed, it has to be reachable by the
+          # function. The image of the release is
+          # docker.io/satishweb/doh-server:latest
+          image: docker.io/satishweb/doh-server:latest
+        codeUri: ./
+        instanceConcurrency: 50
+        environmentVariables:
+          # The upstream resolver, several servers are separated by a comma.
+          UPSTREAM_DNS_SERVER: 'udp:8.8.8.8:53'
+          # The path of the resolve endpoint.
+          DOH_HTTP_PREFIX: '/dns-query'
+          # The additional paths the endpoint is served on.
+          DOH_HTTP_PREFIXES: '/getnsrecord'
+          DOH_SERVER_LISTEN: ':8053'
+          DOH_SERVER_TIMEOUT: '10'
+          DOH_SERVER_TRIES: '3'
+      triggers: ${vars.triggers}
