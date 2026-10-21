@@ -3,7 +3,9 @@
 set -e
 
 DOH_CONFIG_SAMPLE_FILE=/server/doh-server.sample.conf
-DOH_CONFIG_FILE=/server/doh-server.conf
+# The configuration file that the server reads. It can be changed with the
+# DOH_CONFIG_FILE environment variable.
+DOH_CONFIG_FILE=${DOH_CONFIG_FILE:-/server/doh-server.conf}
 SECRET_FILE_ENV_SUFFIX=_FILE
 SECRET_DIR=/run/secrets
 
@@ -243,8 +245,11 @@ __buildUpstreamArray() {
 # Configuration file
 #
 # The configuration is generated from the bundled template unless the user
-# supplied one by mounting it on /server/doh-server.conf.  An existing file is
-# never overwritten.
+# supplied one.  An existing file is never overwritten.
+#
+# The path of the file is set with the DOH_CONFIG_FILE environment variable,
+# that way a custom configuration can be kept in a directory of its own
+# without it being replaced by the generated one.
 # ---------------------------------------------------------------------------
 __generateConfig() {
     if [ -f "${DOH_CONFIG_FILE}" ]; then
@@ -255,6 +260,16 @@ __generateConfig() {
     if [ ! -f "${DOH_CONFIG_SAMPLE_FILE}" ]; then
         __error "Configuration template not found: ${DOH_CONFIG_SAMPLE_FILE}"
         exit 1
+    fi
+
+    local configDir
+    configDir="$(dirname "${DOH_CONFIG_FILE}")"
+    if [ ! -d "${configDir}" ]; then
+        __log "Creating the directory ${configDir} for the configuration file."
+        mkdir -p "${configDir}" || {
+            __error "Could not create the directory ${configDir}."
+            exit 1
+        }
     fi
 
     local tmpFile
@@ -292,6 +307,15 @@ __applyDefaults
 __buildHttpPaths
 __buildUpstreamArray
 __generateConfig
+
+# The server is started with the configuration file of the image.  When the
+# path of the configuration is changed, the argument of the server is
+# adjusted.  An argument that was given on the command line always wins.
+# The positional parameters have to be changed here and not in a function,
+# they are local to a function.
+if [ $# -ge 3 ] && [ "$1" = "/server/doh-server" ] && [ "$2" = "-conf" ] && [ "$3" = "/server/doh-server.conf" ]; then
+    set -- "$1" "$2" "${DOH_CONFIG_FILE}"
+fi
 
 # Check if app-config is present
 if [ -f /app-config ]; then
