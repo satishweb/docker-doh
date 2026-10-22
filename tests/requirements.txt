@@ -1,0 +1,11 @@
+# The dependencies of the test suite, pinned to the versions of the lock
+# file of the pip environment.
+#
+# The file is the manifest that the dependency graph of the repository uses,
+# it is the reason the dependencies of a pull request can be reviewed.
+certifi==2026.10.19
+charset-normalizer==3.5.2
+docker==7.2.0
+idna==3.20
+requests==2.34.2
+urllib3==2.8.0
