@@ -81,6 +81,11 @@ RUN apt-get update && apt-get -y install \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*.deb
 
+# The base image ships the ACME test server of letsencrypt. It is not used by
+# the server and it is built with a version of go that has known
+# vulnerabilities, so it is removed.
+RUN rm -f /usr/bin/pebble
+
 # Add docker entrypoint and make it executable
 ADD docker-entrypoint /docker-entrypoint
 RUN chmod u+x /docker-entrypoint

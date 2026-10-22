@@ -1,0 +1,27 @@
+# Findings of the scan of the image that are accepted.
+#
+# The format is the one of the ignore file of trivy, an entry is a finding
+# that is not reported. An entry can have an expiry date, the finding is
+# reported again when the date is reached.
+#
+# The findings below are in the dependencies of the upstream project
+# m13253/dns-over-https. The version of the dependencies is set by the
+# go.mod of the upstream release, they can not be updated in this
+# repository. They are listed here so that the scan of the image does not
+# fail because of them, and so that they are looked at again when the
+# upstream release is updated.
+#
+# The scan of the operating system packages of the image is not affected by
+# this file, every finding there fails the build.
+
+# golang.org/x/net v0.38.0
+CVE-2026-25681 exp:2027-01-31
+CVE-2026-27136 exp:2027-01-31
+CVE-2026-33814 exp:2027-01-31
+CVE-2026-39821 exp:2027-01-31
+CVE-2026-46600 exp:2027-01-31
+CVE-2026-78669 exp:2027-01-31
+
+# golang.org/x/text v0.23.0
+CVE-2026-56851 exp:2027-01-31
+CVE-2026-56852 exp:2027-01-31

@@ -122,6 +122,22 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Scan the image for vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: doh-server:verify
+          format: table
+          output: /tmp/trivy.txt
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          trivyignores: .trivyignore
+
+      - name: Show the result of the scan
+        if: always()
+        run: cat /tmp/trivy.txt
+
       - name: Install the test dependencies
         run: |
           python -m pip install --upgrade pip
