@@ -128,7 +128,7 @@ jobs:
           image-ref: doh-server:verify
           format: table
           output: /tmp/trivy.txt
-          scanners: vuln
+          scanners: vuln,secret
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
@@ -138,10 +138,24 @@ jobs:
         if: always()
         run: cat /tmp/trivy.txt
 
+      - name: Generate the bill of materials
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: doh-server:verify
+          format: cyclonedx
+          output: /tmp/sbom.cdx.json
+
+      - name: Upload the bill of materials
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: /tmp/sbom.cdx.json
+          if-no-files-found: error
+
       - name: Install the test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install requests docker
+          python -m pip install -r tests/requirements.txt
 
       - name: Test the image
         run: |
@@ -237,9 +251,60 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ steps.release.outputs.version }}
 
+  scan-platforms:
+    name: Scan the published image
+    needs: publish
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - osf: alpine
+            platform: linux/amd64
+          - osf: alpine
+            platform: linux/arm64
+          - osf: alpine
+            platform: linux/arm/v7
+          - osf: alpine
+            platform: linux/arm/v6
+          - osf: alpine
+            platform: linux/ppc64le
+          - osf: alpine
+            platform: linux/s390x
+          - osf: alpine
+            platform: linux/386
+          - osf: ubuntu
+            platform: linux/amd64
+          - osf: ubuntu
+            platform: linux/arm/v7
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Pull the image of the platform
+        run: |
+          docker pull --platform ${{ matrix.platform }} \
+            satishweb/doh-server:${{ inputs.tag || github.ref_name }}
+
+      - name: Scan the image of the platform
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: satishweb/doh-server:${{ inputs.tag || github.ref_name }}
+          format: table
+          output: /tmp/trivy-${{ matrix.osf }}-${{ matrix.platform }}.txt
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          trivyignores: .trivyignore
+
+      - name: Show the result of the platform
+        if: always()
+        run: cat /tmp/trivy-${{ matrix.osf }}-${{ matrix.platform }}.txt
+
   release:
     name: GitHub release
-    needs: publish
+    needs: scan-platforms
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/') && !inputs.dry_run
     permissions:
