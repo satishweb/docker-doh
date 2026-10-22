@@ -27,7 +27,23 @@ jobs:
           python-version: "3.12"
 
       - name: Build image
-        run: docker build -t satishweb/doh-server:ci -f Dockerfile.${{ matrix.osf }} .
+        run: docker build -t satishweb/doh-server:ci-${{ matrix.osf }} -f Dockerfile.${{ matrix.osf }} .
+
+      - name: Scan the image for vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: satishweb/doh-server:ci-${{ matrix.osf }}
+          format: table
+          output: /tmp/trivy-${{ matrix.osf }}.txt
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          trivyignores: .trivyignore
+
+      - name: Show the result of the scan
+        if: always()
+        run: cat /tmp/trivy-${{ matrix.osf }}.txt
 
       - name: Install test dependencies
         run: |
@@ -35,7 +51,7 @@ jobs:
           python -m pip install requests docker
 
       - name: Run tests
-        run: python ./tests/test-doh-server.py --image satishweb/doh-server:ci
+        run: python ./tests/test-doh-server.py --image satishweb/doh-server:ci-${{ matrix.osf }}
 
   helm:
     name: Helm lint
