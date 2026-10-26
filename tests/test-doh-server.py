@@ -421,6 +421,10 @@ def run_config_file_tests(client, image_name, upstream_dns, timeout, tries, verb
                 self.assertNotIn("Exporting var: DOH_CONFIG", logs)
                 secrets = container.exec_run("cat /tmp/doh-secrets.env").output.decode()
                 self.assertNotIn("DOH_CONFIG=", secrets)
+                # The health check reads the same configuration file and
+                # checks the primary path, not just any answer of the server.
+                trace = container.exec_run(["sh", "-x", "/docker-healthcheck"]).output.decode()
+                self.assertIn("path=/getnsrecord", trace)
             finally:
                 container.stop()
                 container.remove()
