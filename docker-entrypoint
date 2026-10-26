@@ -6,6 +6,8 @@ DOH_CONFIG_SAMPLE_FILE=/server/doh-server.sample.conf
 # The configuration file that the server reads. It can be changed with the
 # DOH_CONFIG_FILE environment variable.
 DOH_CONFIG_FILE=${DOH_CONFIG_FILE:-/server/doh-server.conf}
+# The configuration file the server is started with, for the health check.
+CONFIG_FILE_RECORD=/tmp/doh-config-file
 SECRET_FILE_ENV_SUFFIX=_FILE
 # Variables that end in _FILE but hold a path, not a pointer to a secret.
 NOT_SECRET_FILE_VARS=(
@@ -294,6 +296,37 @@ __generateConfig() {
 }
 
 # ---------------------------------------------------------------------------
+# The configuration file in use
+#
+# The health check reads the path and the TLS settings from the file the
+# server is started with.  That is DOH_CONFIG_FILE, unless the server is
+# given another file with -conf on the command line; like the flag parser of
+# the server, the last -conf wins.  The record is written to /tmp, when it
+# cannot be written the health check falls back to DOH_CONFIG_FILE.
+# ---------------------------------------------------------------------------
+__recordConfigFile() {
+    printf '%s\n' "$(__configFileOf "$@")" > "${CONFIG_FILE_RECORD}" 2>/dev/null || true
+}
+
+__configFileOf() {
+    local config="${DOH_CONFIG_FILE}"
+    # The arguments of another command are not the flags of the server.
+    if [ "${1##*/}" != "doh-server" ]; then
+        echo "${config}"
+        return 0
+    fi
+    shift
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -conf|--conf) [ $# -ge 2 ] && { config="$2"; shift; } ;;
+            -conf=*|--conf=*) config="${1#*=}" ;;
+        esac
+        shift
+    done
+    echo "${config}"
+}
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 printf "|---------------------------------------------------------------------------------------------\n"
@@ -327,6 +360,8 @@ __generateConfig
 if [ $# -ge 3 ] && [ "$1" = "/server/doh-server" ] && [ "$2" = "-conf" ] && [ "$3" = "/server/doh-server.conf" ]; then
     set -- "$1" "$2" "${DOH_CONFIG_FILE}"
 fi
+
+__recordConfigFile "$@"
 
 # Check if app-config is present
 if [ -f /app-config ]; then

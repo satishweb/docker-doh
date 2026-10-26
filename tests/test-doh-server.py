@@ -199,6 +199,7 @@ def run_tests(image_name, port, upstream_dns, prefix, prefixes, timeout, tries, 
     run_path_configuration_tests(client, image_name, upstream_dns, timeout, tries, verbose)
     run_empty_number_tests(client, image_name, upstream_dns, verbose)
     run_config_file_tests(client, image_name, upstream_dns, timeout, tries, verbose)
+    run_command_config_tests(client, image_name, upstream_dns, timeout, tries)
     run_tls_test(client, image_name, upstream_dns, timeout, tries, verbose)
 
 
@@ -431,6 +432,57 @@ def run_config_file_tests(client, image_name, upstream_dns, timeout, tries, verb
 
     print("\nRunning configuration file tests...")
     suite = unittest.TestLoader().loadTestsFromTestCase(TestConfigFile)
+    result = unittest.TextTestRunner(verbosity=2).run(suite)
+    if not result.wasSuccessful():
+        sys.exit(1)
+
+
+def run_command_config_tests(client, image_name, upstream_dns, timeout, tries):
+    """The health check reads the configuration file given with -conf.
+
+    The server can be started with its own configuration file on the command
+    line. The health check used to read the file the entrypoint generates, so
+    it checked a path the server does not serve.
+    """
+    import io
+    import tarfile
+
+    class TestCommandConfig(unittest.TestCase):
+        def test_health_check_reads_the_conf_argument(self):
+            port = 18400
+            config = (
+                f'listen = [ ":{port}" ]\n'
+                'path = "/custom"\n'
+                f'upstream = [ "{upstream_dns}" ]\n'
+                f"timeout = {timeout}\n"
+                f"tries = {tries}\n"
+            ).encode()
+            archive = io.BytesIO()
+            with tarfile.open(fileobj=archive, mode="w") as tar:
+                info = tarfile.TarInfo("custom.conf")
+                info.size = len(config)
+                info.mode = 0o644
+                tar.addfile(info, io.BytesIO(config))
+            container = client.containers.create(
+                image_name,
+                command=["/server/doh-server", "-conf", "/tmp/custom.conf"],
+                ports={f"{port}": f"{port}"},
+                environment={"UPSTREAM_DNS_SERVER": upstream_dns},
+            )
+            try:
+                container.put_archive("/tmp", archive.getvalue())
+                container.start()
+                wait_for_server(container, port)
+                check = container.exec_run(["sh", "-x", "/docker-healthcheck"])
+                trace = check.output.decode()
+                self.assertIn("path=/custom", trace)
+                self.assertEqual(check.exit_code, 0, trace)
+            finally:
+                container.stop()
+                container.remove()
+
+    print("\nRunning command line configuration tests...")
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestCommandConfig)
     result = unittest.TextTestRunner(verbosity=2).run(suite)
     if not result.wasSuccessful():
         sys.exit(1)

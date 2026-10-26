@@ -4,20 +4,32 @@
 # Health check for the DNS over HTTP server.
 #
 # The server is only healthy when it answers on the path it is configured
-# with. The path is read from the configuration file that is in use, so the
-# check stays correct no matter how the paths are configured. A path that is
-# listed more than once is served only once, the first entry of the list is
-# the one that is used.
+# with. The path and the port are read from the configuration file that is
+# in use, so the check stays correct no matter how they are configured. A
+# path that is listed more than once is served only once, the first entry of
+# the list is the one that is used.
 #
 # When the server runs with TLS the check uses https, the certificate of the
 # server is self signed in most setups so it is not verified.
 #
 # Exit code 0 means healthy.
 
+# The entrypoint records the configuration file the server is started with,
+# it can be given on the command line.  Without the record the file is the
+# one the entrypoint generates.
 CONFIG_FILE=${DOH_CONFIG_FILE:-/server/doh-server.conf}
+if [ -s /tmp/doh-config-file ]; then
+    CONFIG_FILE=$(cat /tmp/doh-config-file)
+fi
 
-# The port the server listens on.
-port=$(echo "${DOH_SERVER_LISTEN:-:8053}" | awk -F '[:]' '{print $2}')
+# The port the server listens on, of the first entry of the listen list. The
+# list can span several lines. The address can be IPv6, so the port is what
+# follows the last colon.
+listen=$(awk '/^listen[[:space:]]*=/ { found = 1 }
+    found && match($0, /"[^"]*"/) { print substr($0, RSTART + 1, RLENGTH - 2); exit }
+    found && /\]/ { exit }' "${CONFIG_FILE}" 2>/dev/null)
+[ -n "${listen}" ] || listen="${DOH_SERVER_LISTEN:-:8053}"
+port=${listen##*:}
 [ -n "${port}" ] || port=8053
 
 # The primary path, it is the first entry of the comma separated path list.
