@@ -198,6 +198,7 @@ def run_tests(image_name, port, upstream_dns, prefix, prefixes, timeout, tries, 
 
     run_path_configuration_tests(client, image_name, upstream_dns, timeout, tries, verbose)
     run_empty_number_tests(client, image_name, upstream_dns, verbose)
+    run_config_file_tests(client, image_name, upstream_dns, timeout, tries, verbose)
     run_tls_test(client, image_name, upstream_dns, timeout, tries, verbose)
 
 
@@ -381,6 +382,51 @@ def run_empty_number_tests(client, image_name, upstream_dns, verbose):
 
     print("\nRunning empty number tests...")
     suite = unittest.TestLoader().loadTestsFromTestCase(TestEmptyNumbers)
+    result = unittest.TextTestRunner(verbosity=2).run(suite)
+    if not result.wasSuccessful():
+        sys.exit(1)
+
+def run_config_file_tests(client, image_name, upstream_dns, timeout, tries, verbose):
+    """DOH_CONFIG_FILE is the path of the configuration, not a secret.
+
+    It ends with _FILE like the variables that point at a secret, so it used
+    to be read as the secret DOH_CONFIG: a warning about a missing secret on
+    the first start, then the whole configuration exported and written to
+    /tmp/doh-secrets.env once the file existed.
+    """
+
+    class TestConfigFile(unittest.TestCase):
+        def test_config_file_is_not_a_secret(self):
+            port = 18300
+            container = client.containers.run(
+                image_name,
+                detach=True,
+                ports={f"{port}": f"{port}"},
+                environment={
+                    "UPSTREAM_DNS_SERVER": upstream_dns,
+                    "DOH_CONFIG_FILE": "/tmp/doh/doh-server.conf",
+                    "DOH_SERVER_LISTEN": f":{port}",
+                    "DOH_SERVER_TIMEOUT": timeout,
+                    "DOH_SERVER_TRIES": tries,
+                    "DOH_SERVER_VERBOSE": verbose,
+                },
+            )
+            try:
+                wait_for_server(container, port)
+                # The second start finds the generated file.
+                container.restart()
+                wait_for_server(container, port)
+                logs = container.logs().decode("utf-8", errors="replace")
+                self.assertNotIn("'DOH_CONFIG'", logs)
+                self.assertNotIn("Exporting var: DOH_CONFIG", logs)
+                secrets = container.exec_run("cat /tmp/doh-secrets.env").output.decode()
+                self.assertNotIn("DOH_CONFIG=", secrets)
+            finally:
+                container.stop()
+                container.remove()
+
+    print("\nRunning configuration file tests...")
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestConfigFile)
     result = unittest.TextTestRunner(verbosity=2).run(suite)
     if not result.wasSuccessful():
         sys.exit(1)
