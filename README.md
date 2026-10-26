@@ -172,6 +172,8 @@ Secret values are read verbatim, values containing whitespace or shell
 metacharacters are preserved. The resolved values are written to
 `/tmp/doh-secrets.env` inside the container for troubleshooting.
 
+`DOH_CONFIG_FILE` is not a secret: it is the path of the configuration file.
+
 ## Docker Configuration
 
 ```yaml

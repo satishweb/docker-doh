@@ -29,7 +29,9 @@ __error() { printf "| ENTRYPOINT: \033[0;31m%s\033[0m\n" "$*" >&2; }
 # metacharacters intact.
 # ---------------------------------------------------------------------------
 __secretNames() {
-    env | sed -n "s/^\([A-Za-z_][A-Za-z0-9_]*\)${SECRET_FILE_ENV_SUFFIX}=.*/\1/p" | sort -u
+    # DOH_CONFIG_FILE is the path of the configuration file, not a secret.
+    env | sed -n -e '/^DOH_CONFIG_FILE=/d' \
+        -e "s/^\([A-Za-z_][A-Za-z0-9_]*\)${SECRET_FILE_ENV_SUFFIX}=.*/\1/p" | sort -u
 }
 
 __loadSecrets() {
