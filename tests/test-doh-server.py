@@ -197,6 +197,7 @@ def run_tests(image_name, port, upstream_dns, prefix, prefixes, timeout, tries, 
         print("Docker container stopped and removed.")
 
     run_path_configuration_tests(client, image_name, upstream_dns, timeout, tries, verbose)
+    run_empty_number_tests(client, image_name, upstream_dns, verbose)
     run_tls_test(client, image_name, upstream_dns, timeout, tries, verbose)
 
 
@@ -341,6 +342,48 @@ def run_path_configuration_tests(client, image_name, upstream_dns, timeout, trie
     if not result.wasSuccessful():
         sys.exit(1)
 
+
+def run_empty_number_tests(client, image_name, upstream_dns, verbose):
+    """An empty timeout or number of tries has to fall back to the default.
+
+    The warning about the empty value used to be written into the
+    configuration file, so the server could not read it and did not start.
+    """
+    import requests
+
+    class TestEmptyNumbers(unittest.TestCase):
+        def test_empty_timeout_and_tries(self):
+            port = 18200
+            container = client.containers.run(
+                image_name,
+                detach=True,
+                ports={f"{port}": f"{port}"},
+                environment={
+                    "UPSTREAM_DNS_SERVER": upstream_dns,
+                    "DOH_SERVER_LISTEN": f":{port}",
+                    "DOH_SERVER_TIMEOUT": "",
+                    "DOH_SERVER_TRIES": "",
+                    "DOH_SERVER_VERBOSE": verbose,
+                },
+            )
+            try:
+                wait_for_server(container, port)
+                response = requests.get(
+                    f"http://localhost:{port}/dns-query?name=google.com&type=A", timeout=30
+                )
+                self.assertEqual(response.status_code, 200)
+                config = container.exec_run("cat /server/doh-server.conf").output.decode()
+                self.assertIn("\ntimeout = 10\n", config)
+                self.assertIn("\ntries = 3\n", config)
+            finally:
+                container.stop()
+                container.remove()
+
+    print("\nRunning empty number tests...")
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestEmptyNumbers)
+    result = unittest.TextTestRunner(verbosity=2).run(suite)
+    if not result.wasSuccessful():
+        sys.exit(1)
 
 if __name__ == "__main__":
     # Argument parser for overriding default values
