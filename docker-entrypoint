@@ -13,7 +13,7 @@ SECRET_DIR=/run/secrets
 # Logging helpers
 # ---------------------------------------------------------------------------
 __log()   { printf "| ENTRYPOINT: %s\n" "$*"; }
-__warn()  { printf "| ENTRYPOINT: \033[0;33m%s\033[0m\n" "$*"; }
+__warn()  { printf "| ENTRYPOINT: \033[0;33m%s\033[0m\n" "$*" >&2; }
 __error() { printf "| ENTRYPOINT: \033[0;31m%s\033[0m\n" "$*" >&2; }
 
 # ---------------------------------------------------------------------------
