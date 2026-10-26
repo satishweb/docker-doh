@@ -7,6 +7,10 @@ DOH_CONFIG_SAMPLE_FILE=/server/doh-server.sample.conf
 # DOH_CONFIG_FILE environment variable.
 DOH_CONFIG_FILE=${DOH_CONFIG_FILE:-/server/doh-server.conf}
 SECRET_FILE_ENV_SUFFIX=_FILE
+# Variables that end in _FILE but hold a path, not a pointer to a secret.
+NOT_SECRET_FILE_VARS=(
+    DOH_CONFIG_FILE
+)
 SECRET_DIR=/run/secrets
 
 # ---------------------------------------------------------------------------
@@ -29,9 +33,14 @@ __error() { printf "| ENTRYPOINT: \033[0;31m%s\033[0m\n" "$*" >&2; }
 # metacharacters intact.
 # ---------------------------------------------------------------------------
 __secretNames() {
-    # DOH_CONFIG_FILE is the path of the configuration file, not a secret.
-    env | sed -n -e '/^DOH_CONFIG_FILE=/d' \
-        -e "s/^\([A-Za-z_][A-Za-z0-9_]*\)${SECRET_FILE_ENV_SUFFIX}=.*/\1/p" | sort -u
+    local name excluded
+    env | sed -n "s/^\([A-Za-z_][A-Za-z0-9_]*\)${SECRET_FILE_ENV_SUFFIX}=.*/\1/p" | sort -u |
+    while read -r name; do
+        for excluded in "${NOT_SECRET_FILE_VARS[@]}"; do
+            [ "${name}${SECRET_FILE_ENV_SUFFIX}" = "${excluded}" ] && continue 2
+        done
+        echo "${name}"
+    done
 }
 
 __loadSecrets() {
