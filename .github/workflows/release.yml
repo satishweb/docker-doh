@@ -280,21 +280,33 @@ jobs:
             platform: linux/amd64
           - osf: ubuntu
             platform: linux/arm/v7
+    # Nothing is published on a dry run, so there is nothing to scan.
+    if: ${{ !inputs.dry_run }}
+    # A tag publishes the image of one OS flavour; the entries of the matrix
+    # for the other flavour are skipped step by step, as a job condition
+    # cannot read the matrix.
+    env:
+      SCAN: ${{ endsWith(inputs.tag || github.ref_name, format('-{0}', matrix.osf)) }}
     steps:
       - name: Checkout repository
+        if: env.SCAN == 'true'
         uses: actions/checkout@v4
 
       - name: Pull the image of the platform
+        if: env.SCAN == 'true'
         run: |
           docker pull --platform ${{ matrix.platform }} \
             satishweb/doh-server:${{ inputs.tag || github.ref_name }}
 
+      # The platform contains slashes, so it is not part of the file name;
+      # every entry of the matrix runs on its own runner anyway.
       - name: Scan the image of the platform
+        if: env.SCAN == 'true'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: satishweb/doh-server:${{ inputs.tag || github.ref_name }}
           format: table
-          output: /tmp/trivy-${{ matrix.osf }}-${{ matrix.platform }}.txt
+          output: /tmp/trivy.txt
           scanners: vuln,secret
           severity: HIGH,CRITICAL
           ignore-unfixed: true
@@ -302,8 +314,8 @@ jobs:
           trivyignores: .trivyignore
 
       - name: Show the result of the platform
-        if: always()
-        run: cat /tmp/trivy-${{ matrix.osf }}-${{ matrix.platform }}.txt
+        if: always() && env.SCAN == 'true'
+        run: cat /tmp/trivy.txt
 
   release:
     name: GitHub release
@@ -319,9 +331,13 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
+          # The alpine image is the latest image, so only its release is
+          # marked as the latest one, whichever of the two is created last.
+          latest=false
+          case "${TAG}" in *-alpine) latest=true ;; esac
           if gh release view "${TAG}" >/dev/null 2>&1; then
             echo "The release ${TAG} exists already, its notes are updated."
-            gh release edit "${TAG}" --title "${TAG}" --generate-notes
+            gh release edit "${TAG}" --title "${TAG}" --latest="${latest}"
           else
-            gh release create "${TAG}" --title "${TAG}" --generate-notes
+            gh release create "${TAG}" --title "${TAG}" --generate-notes --latest="${latest}"
           fi
