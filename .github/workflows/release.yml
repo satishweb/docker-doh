@@ -244,7 +244,10 @@ jobs:
             DOH_VERSION=${{ steps.release.outputs.version }}
           push: ${{ !inputs.dry_run }}
           tags: ${{ steps.release.outputs.tags }}
-          provenance: true
+          # A provenance attestation is published as an extra manifest of
+          # the platform unknown/unknown, that is listed on the Docker Hub
+          # next to the images of the real platforms.
+          provenance: false
           labels: |
             org.opencontainers.image.title=DNS Over HTTP Server
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
