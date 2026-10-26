@@ -14,7 +14,7 @@
 #
 # Exit code 0 means healthy.
 
-CONFIG_FILE=/server/doh-server.conf
+CONFIG_FILE=${DOH_CONFIG_FILE:-/server/doh-server.conf}
 
 # The port the server listens on.
 port=$(echo "${DOH_SERVER_LISTEN:-:8053}" | awk -F '[:]' '{print $2}')
