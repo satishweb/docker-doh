@@ -172,7 +172,10 @@ Secret values are read verbatim, values containing whitespace or shell
 metacharacters are preserved. The resolved values are written to
 `/tmp/doh-secrets.env` inside the container for troubleshooting.
 
-`DOH_CONFIG_FILE` is not a secret: it is the path of the configuration file.
+Some variables end in `_FILE` but hold a path, not a pointer to a secret, for
+example `DOH_CONFIG_FILE`, the path of the configuration file. They are listed
+in `NOT_SECRET_FILE_VARS` at the top of `docker-entrypoint` and are never
+loaded as secrets.
 
 ## Docker Configuration
 
