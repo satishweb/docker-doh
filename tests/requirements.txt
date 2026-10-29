@@ -3,7 +3,7 @@
 #
 # The file is the manifest that the dependency graph of the repository uses,
 # it is the reason the dependencies of a pull request can be reviewed.
-certifi==2026.10.19
+certifi==2026.10.23
 charset-normalizer==3.5.2
 docker==7.2.0
 idna==3.20
