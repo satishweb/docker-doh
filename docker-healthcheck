@@ -4,10 +4,10 @@
 # Health check for the DNS over HTTP server.
 #
 # The server is only healthy when it answers on the path it is configured
-# with. The path and the port are read from the configuration file that is
-# in use, so the check stays correct no matter how they are configured. A
-# path that is listed more than once is served only once, the first entry of
-# the list is the one that is used.
+# with. The path, the address and the port are read from the configuration
+# file that is in use, so the check stays correct no matter how they are
+# configured. A path that is listed more than once is served only once, the
+# first entry of the list is the one that is used.
 #
 # When the server runs with TLS the check uses https, the certificate of the
 # server is self signed in most setups so it is not verified.
@@ -32,6 +32,15 @@ listen=$(awk '/^listen[[:space:]]*=/ { found = 1 }
 port=${listen##*:}
 [ -n "${port}" ] || port=8053
 
+# The address is what comes before the port. A server that listens on one
+# address only does not answer on the others, and localhost can resolve to
+# ::1 while the server listens on 127.0.0.1. An empty or unspecified address
+# listens on every address, localhost is used then.
+host=${listen%:*}
+case "${host}" in
+    ""|0.0.0.0|"[::]") host=localhost ;;
+esac
+
 # The primary path, it is the first entry of the comma separated path list.
 path=$(sed -n 's/^path[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "${CONFIG_FILE}" 2>/dev/null | cut -d, -f1)
 
@@ -51,7 +60,7 @@ if [ -z "${path}" ]; then
     # answer from the server proves that it is running.
     # shellcheck disable=SC2086
     wget --tries=1 --timeout=10 ${wgetOptions} -S -O /dev/null \
-        "${scheme}://localhost:${port}/?name=healthcheck.example&type=A" 2>&1 \
+        "${scheme}://${host}:${port}/?name=healthcheck.example&type=A" 2>&1 \
         | grep -qE "HTTP/1\.[01] [0-9]{3}"
     exit $?
 fi
@@ -61,6 +70,6 @@ fi
 # container.
 # shellcheck disable=SC2086
 wget --tries=1 --timeout=10 ${wgetOptions} -S -O /dev/null \
-    "${scheme}://localhost:${port}${path}?name=healthcheck.example&type=A" 2>&1 \
+    "${scheme}://${host}:${port}${path}?name=healthcheck.example&type=A" 2>&1 \
     | grep -qE "HTTP/1\.[01] (200|503)"
 exit $?
