@@ -36,14 +36,32 @@ jobs:
           format: table
           output: /tmp/trivy-${{ matrix.osf }}.txt
           scanners: vuln,secret
+          # The gate looks at the packages of the operating system, they are
+          # the ones the image chooses. The findings of the Go binary are
+          # reported below, they can not be fixed in the image.
+          vuln-type: os
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
-          trivyignores: .trivyignore
 
       - name: Show the result of the scan
         if: always()
         run: cat /tmp/trivy-${{ matrix.osf }}.txt
+
+      - name: Report the findings of the programs in the image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: satishweb/doh-server:ci-${{ matrix.osf }}
+          format: table
+          output: /tmp/trivy-all-${{ matrix.osf }}.txt
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "0"
+
+      - name: Show the findings of the programs in the image
+        if: always()
+        run: cat /tmp/trivy-all-${{ matrix.osf }}.txt
 
       - name: Generate the bill of materials
         uses: aquasecurity/trivy-action@v0.36.0

@@ -129,10 +129,10 @@ jobs:
           format: table
           output: /tmp/trivy.txt
           scanners: vuln,secret
+          vuln-type: os
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
-          trivyignores: .trivyignore
 
       - name: Show the result of the scan
         if: always()
@@ -308,10 +308,10 @@ jobs:
           format: table
           output: /tmp/trivy.txt
           scanners: vuln,secret
+          vuln-type: os
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
-          trivyignores: .trivyignore
 
       - name: Show the result of the platform
         if: always() && env.SCAN == 'true'
