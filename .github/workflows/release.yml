@@ -179,21 +179,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Log in to the Docker Hub
-        if: steps.release.outputs.osf == matrix.osf && !inputs.dry_run
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Log in to the GitHub container registry
-        if: steps.release.outputs.osf == matrix.osf && !inputs.dry_run
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY_GHCR }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Resolve the release
         id: release
         env:
@@ -226,6 +211,21 @@ jobs:
             fi
             echo "EOF"
           } >> "${GITHUB_OUTPUT}"
+
+      - name: Log in to the Docker Hub
+        if: steps.release.outputs.osf == matrix.osf && !inputs.dry_run
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to the GitHub container registry
+        if: steps.release.outputs.osf == matrix.osf && !inputs.dry_run
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_GHCR }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
