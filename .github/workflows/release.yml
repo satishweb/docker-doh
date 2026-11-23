@@ -292,19 +292,19 @@ jobs:
         if: env.SCAN == 'true'
         uses: actions/checkout@v4
 
-      - name: Pull the image of the platform
+      - name: Write the Trivy config of the platform
         if: env.SCAN == 'true'
         run: |
-          docker pull --platform ${{ matrix.platform }} \
-            satishweb/doh-server:${{ inputs.tag || github.ref_name }}
+          printf 'image:\n  platform: %s\n' '${{ matrix.platform }}' > /tmp/trivy.yaml
 
-      # The platform contains slashes, so it is not part of the file name;
-      # every entry of the matrix runs on its own runner anyway.
+      # Every entry of the matrix runs on its own runner, so the config file
+      # names the manifest that Trivy analyzes from the multiarch tag.
       - name: Scan the image of the platform
         if: env.SCAN == 'true'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: satishweb/doh-server:${{ inputs.tag || github.ref_name }}
+          trivy-config: /tmp/trivy.yaml
           format: table
           output: /tmp/trivy.txt
           scanners: vuln,secret
