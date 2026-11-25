@@ -2,7 +2,7 @@
 
 # Version of the upstream DNS over HTTPS server to build.
 # https://github.com/m13253/dns-over-https/releases
-ARG DOH_VERSION=v2.3.10
+ARG DOH_VERSION=v2.4.0
 
 # The platform the build itself runs on. BuildKit sets this
 # automatically, the fallback is only used by the legacy builder.
