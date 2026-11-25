@@ -200,6 +200,7 @@ def run_tests(image_name, port, upstream_dns, prefix, prefixes, timeout, tries, 
     run_empty_number_tests(client, image_name, upstream_dns, verbose)
     run_config_file_tests(client, image_name, upstream_dns, timeout, tries, verbose)
     run_command_config_tests(client, image_name, upstream_dns, timeout, tries)
+    run_listen_address_tests(client, image_name, upstream_dns, timeout, tries)
     run_tls_test(client, image_name, upstream_dns, timeout, tries, verbose)
 
 
@@ -483,6 +484,53 @@ def run_command_config_tests(client, image_name, upstream_dns, timeout, tries):
 
     print("\nRunning command line configuration tests...")
     suite = unittest.TestLoader().loadTestsFromTestCase(TestCommandConfig)
+    result = unittest.TextTestRunner(verbosity=2).run(suite)
+    if not result.wasSuccessful():
+        sys.exit(1)
+
+
+def run_listen_address_tests(client, image_name, upstream_dns, timeout, tries):
+    """The health check queries the address the server listens on.
+
+    The check used to query localhost. A server that listens on one address
+    only does not answer on the others, and localhost can resolve to ::1
+    while the server listens on 127.0.0.1, so the check failed although the
+    server answered.
+    """
+
+    class TestListenAddress(unittest.TestCase):
+        def test_health_check_uses_the_listen_address(self):
+            port = 18500
+            container = client.containers.run(
+                image_name,
+                detach=True,
+                environment={
+                    "UPSTREAM_DNS_SERVER": upstream_dns,
+                    "DOH_SERVER_LISTEN": f"127.0.0.1:{port}",
+                    "DOH_SERVER_TIMEOUT": timeout,
+                    "DOH_SERVER_TRIES": tries,
+                },
+            )
+            try:
+                # The server only listens inside the container, so it is
+                # waited for from inside the container.
+                deadline = time.time() + HEALTH_TIMEOUT
+                ready = ["sh", "-c", f"wget -S -O /dev/null http://127.0.0.1:{port}/ 2>&1 | grep -q HTTP/"]
+                while container.exec_run(ready).exit_code != 0:
+                    if time.time() > deadline:
+                        logs = container.logs().decode("utf-8", errors="replace")
+                        self.fail(f"The server did not answer within {HEALTH_TIMEOUT}s.\n{logs}")
+                    time.sleep(1)
+                check = container.exec_run(["sh", "-x", "/docker-healthcheck"])
+                trace = check.output.decode()
+                self.assertIn(f"http://127.0.0.1:{port}/getnsrecord?", trace)
+                self.assertEqual(check.exit_code, 0, trace)
+            finally:
+                container.stop()
+                container.remove()
+
+    print("\nRunning listen address tests...")
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestListenAddress)
     result = unittest.TextTestRunner(verbosity=2).run(suite)
     if not result.wasSuccessful():
         sys.exit(1)

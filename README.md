@@ -371,9 +371,11 @@ passes when the server answers with `200` or `503`, so a broken upstream
 resolver does not make the container look unhealthy (and does not cause a
 restart loop in an orchestrator).
 
-The check reads the port, the path and the TLS settings from the configuration
-file the server is started with: `DOH_CONFIG_FILE`, or the file given with
-`-conf` when the server command is changed.
+The check reads the address and the port, the path and the TLS settings from
+the configuration file the server is started with: `DOH_CONFIG_FILE`, or the
+file given with `-conf` when the server command is changed. A server that
+listens on one address only, for example `DOH_SERVER_LISTEN=127.0.0.1:8053`,
+is checked on that address.
 
 ## Security Notes
 
