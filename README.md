@@ -7,7 +7,7 @@ This Docker image provides a DNS Over HTTP (DOH) service, designed to enhance pr
 The image is a thin wrapper around the upstream project
 [m13253/dns-over-https](https://github.com/m13253/dns-over-https). The upstream
 release that is compiled into the image is pinned in the `DOH_VERSION` build
-argument and defaults to **v2.3.10**.
+argument and defaults to **v2.4.0**.
 
 ## Features
 
@@ -250,7 +250,7 @@ docker build . --no-cache -t satishweb/doh-server -f Dockerfile.alpine
 To build a different upstream release:
 
 ```bash
-docker build . --build-arg DOH_VERSION=v2.3.10 -t satishweb/doh-server -f Dockerfile.alpine
+docker build . --build-arg DOH_VERSION=v2.4.0 -t satishweb/doh-server -f Dockerfile.alpine
 ```
 
 The build fails if the version of the downloaded source does not match the
@@ -269,8 +269,8 @@ docker pull satishweb/doh-server
 | `latest` | The alpine image, this is the primary image. |
 | `alpine` | The alpine image, pinned to the latest release. |
 | `ubuntu` | The ubuntu image, pinned to the latest release. |
-| `v<version>-alpine` | The alpine image of a specific release, e.g. `v2.3.10-1-alpine`. |
-| `v<version>-ubuntu` | The ubuntu image of a specific release, e.g. `v2.3.10-1-ubuntu`. |
+| `v<version>-alpine` | The alpine image of a specific release, e.g. `v2.4.0-1-alpine`. |
+| `v<version>-ubuntu` | The ubuntu image of a specific release, e.g. `v2.4.0-1-ubuntu`. |
 
 The alpine image is the first choice and the ubuntu image is the second one,
 so the `latest` tag always points to the alpine image. The version in the tag
@@ -295,10 +295,10 @@ Follow these steps to set up DOH Server on Linux, Mac, or Raspberry Pi in minute
 1. Download the latest release from [GitHub](https://github.com/satishweb/docker-doh/releases) to your server:
 
 ```bash
-wget https://github.com/satishweb/docker-doh/archive/v2.3.10-1-alpine.zip
-unzip v2.3.10-1-alpine.zip
-cp -rf docker-doh-2.3.10-1-alpine/examples/docker-compose-doh-server doh-server
-rm -rf v2.3.10-1-alpine.zip docker-doh-2.3.10-1-alpine
+wget https://github.com/satishweb/docker-doh/archive/v2.4.0-1-alpine.zip
+unzip v2.4.0-1-alpine.zip
+cp -rf docker-doh-2.4.0-1-alpine/examples/docker-compose-doh-server doh-server
+rm -rf v2.4.0-1-alpine.zip docker-doh-2.4.0-1-alpine
 cd doh-server
 ```
 

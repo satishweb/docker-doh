@@ -1,7 +1,7 @@
 # Build and publish the container images for a release tag.
 #
 # The tag has to have the form v<version>[-<number>]-<alpine|ubuntu>, for
-# example v2.3.10-4-alpine.  The version is the version of the upstream
+# example v2.4.0-1-alpine.  The version is the version of the upstream
 # dns-over-https release that is built into the image, the optional number
 # counts the rebuilds of the same upstream version.
 #
@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "The release tag, for example v2.3.10-4-alpine"
+        description: "The release tag, for example v2.4.0-1-alpine"
         required: true
         type: string
       dry_run:

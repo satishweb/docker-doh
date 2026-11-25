@@ -14,7 +14,7 @@ This [Helm](https://github.com/kubernetes/helm) chart installs [docker-doh](http
 ### Package the chart
 
 ```bash
-helm package --version 2.3.10 --app-version v2.3.10 --destination . doh-server
+helm package --version 2.4.0 --app-version v2.4.0 --destination . doh-server
 ```
 
 ### Configure the chart
@@ -70,7 +70,7 @@ helm install my-release \
   --set env.UPSTREAM_DNS_SERVER="udp:8.8.8.4:53" \
   --set ingress.enabled=true \
   --set ingress.domainName=doh.my-domain.com \
-  ./doh-server-2.3.10.tgz
+  ./doh-server-2.4.0.tgz
 ```
 
 Or straight from the chart directory:

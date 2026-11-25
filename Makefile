@@ -6,15 +6,15 @@ DOCKER_BUILDX_CMD?=docker buildx
 
 # Pinned upstream release that gets built into the image.
 # https://github.com/m13253/dns-over-https/releases
-# Override to build another version:  make all DOH_VERSION=v2.3.11
-DOH_VERSION?=v2.3.10
+# Override to build another version:  make all DOH_VERSION=v2.4.1
+DOH_VERSION?=v2.4.0
 
 WORKDIR=$(shell pwd)
 # The image tag follows the upstream version, e.g. v2.3.10
 TAGNAME?=$(DOH_VERSION)
 OSF?=alpine
 HELM_CHART_DIR=helm/doh-server
-HELM_CHART_VERSION?=2.3.10
+HELM_CHART_VERSION?=2.4.0
 
 # Set L to + for debug
 L=@
